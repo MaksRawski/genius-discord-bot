@@ -8,42 +8,39 @@ use serenity::{
 };
 use std::sync::Arc;
 
-pub use crate::genius_dl::ImageDownloader;
+pub use crate::genius_dl::GeniusApi;
 use crate::genius_dl::QueryResult;
 use std::time::Duration;
 
-pub struct ImageDownloaderContainer;
+pub struct GeniusApiWrapper;
 
-impl TypeMapKey for ImageDownloaderContainer {
-    type Value = Arc<ImageDownloader>;
+impl TypeMapKey for GeniusApiWrapper {
+    type Value = Arc<GeniusApi>;
 }
 
 #[group]
-#[commands(query)]
-pub struct General;
+// #[commands(lyrics, quote)]
+#[commands(img)]
+pub struct Query;
 
-// TODO generalize this and reuse it
-// also have a query command
-#[command]
-async fn query(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+// either returns song_id or String with an error message
+async fn query(ctx: &Context, msg: &Message, args: Args) -> Result<u32, String> {
     let arg = args.message();
     if arg.len() < 2 {
-        msg.channel_id.say(ctx, format!("Query too short")).await;
-        return Ok(());
+        return Err("Query too short".to_string());
     }
     let data = ctx.data.read().await;
-    let image_downloader = data.get::<ImageDownloaderContainer>().unwrap();
+    let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
     msg.channel_id
         .say(ctx, format!("Searching genius for: **{}**\n", arg))
         .await;
 
-    let results: Vec<QueryResult> = image_downloader.query(arg).await.unwrap();
+    let results: Vec<QueryResult> = genius_api.query(arg).await.unwrap();
 
     let song_id = match results.len() {
         0 => {
-            msg.channel_id.say(ctx, "**No results found!**").await;
-            return Ok(());
+            return Err("**No results found!**".to_string());
         }
         1 => results.get(0).unwrap().id,
         _ => {
@@ -78,31 +75,61 @@ async fn query(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 let index = if let Ok(v) = answer.content.parse::<usize>() {
                     v - 1
                 } else {
-                    msg.channel_id
-                        .say(ctx, format!("That's not a valid number!"));
-                    return Ok(());
+                    return Err(format!("That's not a valid number!"));
                 };
                 let chosen_result = if let Some(v) = results.get(index) {
                     v
                 } else {
-                    msg.channel_id
-                        .say(ctx, format!("Provided number is too big."))
-                        .await;
-                    return Ok(());
+                    return Err(format!("Provided number is too big."));
                 };
                 msg.channel_id
                     .say(ctx, format!("You've chosen: **{}**", chosen_result))
                     .await;
                 chosen_result.id
             } else {
-                msg.channel_id.say(ctx, format!("Time's up!")).await;
-                return Ok(());
+                return Err(format!("Time's up!"));
             }
         }
     };
-    let url: &str = &image_downloader.img(song_id).await.unwrap();
+    Ok(song_id)
+}
+
+async fn get_thumbnail(ctx: &Context, msg: &Message, args: Args) -> Result<String, String> {
+    let data = ctx.data.read().await;
+    let genius_api = data.get::<GeniusApiWrapper>().unwrap();
+
+    let song_id = query(ctx, msg, args).await?;
+    let img_url = genius_api
+        .img(song_id)
+        .await
+        .map_err(|_| "A problem occured while downloading the cover image".to_string())?;
+
+    Ok(img_url)
+}
+
+#[command]
+#[aliases(image, cover, art, thumbnail)]
+#[description("Query a song's thumbnail")]
+async fn img(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let img = match get_thumbnail(ctx, msg, args).await {
+        Ok(img) => img,
+        Err(e) => {
+            msg.channel_id.say(ctx, e);
+            return Ok(())
+        },
+    };
     msg.channel_id
-        .send_files(ctx, vec![url], |m| m.content("TEST"))
+        .send_files(ctx, vec![&img[..]], |m| m.content(""))
         .await;
+
     Ok(())
 }
+
+// #[command]
+// #[aliases(text, find, search)]
+// async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {}
+
+// #[command]
+// #[aliases(card)]
+// #[description("Create a lyric card containing a given quote")]
+// async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {}

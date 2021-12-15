@@ -1,5 +1,5 @@
 use genius::discord::Discord;
-use genius::genius_dl::ImageDownloader;
+use genius::genius_dl::GeniusApi;
 use std::env;
 
 #[tokio::main]

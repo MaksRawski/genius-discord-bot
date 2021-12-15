@@ -2,13 +2,21 @@
 // use tracing::{error, info};
 // use tracing_subscriber::{EnvFilter, FmtSubscriber};
 use std::sync::Arc;
+use std::collections::HashSet;
 
 use serenity::{
     async_trait,
     http::Http,
-    prelude::*, model::prelude::Ready, framework::StandardFramework,
+    prelude::*,
+    model::prelude::*,
+    framework::standard::{
+        StandardFramework,
+        help_commands, HelpOptions,
+        macros::{command, group, help},
+        Args, CommandResult, CommandGroup
+    }
 };
-use super::commands::{GENERAL_GROUP, ImageDownloaderContainer, ImageDownloader};
+use super::commands::{QUERY_GROUP, GeniusApiWrapper, GeniusApi};
 
 struct Handler;
 
@@ -19,6 +27,20 @@ impl EventHandler for Handler {
     async fn ready(&self, _: Context, ready: Ready) {
         println!("Connected as {}", ready.user.name);
     }
+}
+
+#[help]
+#[command_not_found_text = "Could not find: `{}`."]
+async fn my_help(
+   context: &Context,
+   msg: &Message,
+   args: Args,
+   help_options: &'static HelpOptions,
+   groups: &[&'static CommandGroup],
+   owners: HashSet<UserId>
+) -> CommandResult {
+    let _ = help_commands::with_embeds(context, msg, args, help_options, groups, owners).await;
+    Ok(())
 }
 
 pub struct Discord {
@@ -44,7 +66,8 @@ impl Discord {
 
         let framework = StandardFramework::new()
             .configure(|c| c.on_mention(Some(bot_id)))
-            .group(&GENERAL_GROUP);
+            .help(&MY_HELP)
+            .group(&QUERY_GROUP);
 
         let client = Client::builder(discord_token)
             .framework(framework)
@@ -54,7 +77,7 @@ impl Discord {
 
         {
             let mut data = client.data.write().await;
-            data.insert::<ImageDownloaderContainer>(Arc::new(ImageDownloader::new(genius_token)));
+            data.insert::<GeniusApiWrapper>(Arc::new(GeniusApi::new(genius_token)));
         }
 
         Self { client }
