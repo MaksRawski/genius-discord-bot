@@ -20,7 +20,7 @@ cp "$img" $dir
 cd $dir
 
 # scale the image and remove any metadata
-if [ $(magick identify -format '%h') -lt $(magick identify -format '%w') ]; then
+if [ $(magick identify -format '%w') -gt $(magick identify -format '%h') ]; then
 	magick $img +profile "*" -resize x600 resized.png
 else
 	magick $img +profile "*" -resize 900x resized.png

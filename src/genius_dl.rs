@@ -1,17 +1,23 @@
 use jq_rs;
-use reqwest::{self, Request};
-use scraper::{Html, Selector};
+use rand::distributions::Alphanumeric;
+use rand::prelude::*;
+use reqwest::{self, Request, RequestBuilder};
+use scraper::{element_ref::Select, Html, Selector};
 use serde::Deserialize;
 use serde_json;
 use serenity::http::request;
 use std::fmt;
+use std::io::{Cursor, Read};
+
+// TODO remove this and instead use an itertor
+use std::fmt::Write as FmtWrite;
 
 pub struct GeniusApi {
     client: reqwest::Client,
     genius_token: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct SongQuery {
     pub artist: String,
     pub title: String,
@@ -24,8 +30,6 @@ impl fmt::Display for SongQuery {
     }
 }
 
-type RequestSettings = dyn FnOnce(reqwest::RequestBuilder) -> reqwest::RequestBuilder;
-
 impl GeniusApi {
     pub fn new(genius_token: &str) -> Self {
         Self {
@@ -34,12 +38,8 @@ impl GeniusApi {
         }
     }
 
-    async fn safe_get(
-        &self,
-        url: &str,
-        request_settings: RequestSettings,
-    ) -> Result<String, String> {
-        request_settings(self.client.get(url))
+    async fn safe_get(&self, request: RequestBuilder) -> Result<String, String> {
+        request
             .send()
             .await
             .map_err(|e| format!("Error occured while trying to make a request: {}", e))?
@@ -48,38 +48,14 @@ impl GeniusApi {
             .map_err(|e| format!("Error occured while parsing the response: {}", e))
     }
 
-    // async fn get_api(
-    //     &self,
-    //     path: &str,
-    //     query: Option<Vec<(&str, &str)>>,
-    // ) -> Result<String, String> {
-    //     let request_settings: &Box<RequestSettings> = if let Some(q) = query {
-    //         &Box::new(|r| r.bearer_auth(&self.genius_token).query(&q))
-    //     } else {
-    //         &Box::new(|r| r.bearer_auth(&self.genius_token))
-    //     };
-    //     self.safe_get(
-    //         &format!("https://api.genius.com/{}", path),
-    //         request_settings,
-    //     )
-    //     .await
-    // }
+    async fn query_api(&self, path: &str, query: &str) -> Result<String, String> {
+        let request = self
+            .client
+            .get(format!("https://api.genius.com/{}", path))
+            .bearer_auth(&self.genius_token)
+            .query(&vec![("q", query)]);
 
-    // fuck lifetimes
-    // fuck closures
-    // it will be probably best if we just simplify everything
-    // OR
-    // figure out how to have non static lifetime for RequestSettings
-    async fn query_api(&self, path: &str, query: String) -> Result<String, String> {
-        let token = self.genius_token.clone();
-        let request_settings: Box<RequestSettings> =
-            Box::new(move |r: reqwest::RequestBuilder| r.bearer_auth(&token).query(&vec![("q", query)]));
-
-        self.safe_get(
-            &format!("https://api.genius.com/{}", path),
-            *request_settings,
-        )
-        .await
+        self.safe_get(request).await
     }
 
     // if there is no match, jq returns error message as String
@@ -91,56 +67,78 @@ impl GeniusApi {
     }
 
     pub async fn search_song(&self, query: &str) -> Result<Vec<SongQuery>, String> {
-        let raw_data = self
-            .query_api("search", Some(vec![("q", query)]))
-            .await
-            .map_err(|v| {
-                format!(
-                    "Error occured while trying to make a request: {}",
-                    v.to_string()
-                )
-            })?;
+        let raw_data = self.query_api("search", query).await?;
 
         GeniusApi::parse_query(&raw_data)
     }
 
-    // make sure to run only trusted jq input here
-    async fn query_string_from_song_object(
-        &self,
-        song_id: u32,
-        jq: &str,
-    ) -> Result<String, String> {
-        let raw_data = self
-            .query_api(&format!("songs/{}", song_id), None)
-            .await
-            .map_err(|v| {
-                format!(
-                    "Error occured while trying to make a request: {}",
-                    v.to_string()
-                )
-            })?;
+    /// for a given song_id tries to find a value which matches provided jq query
+    pub async fn jq_song_info(&self, song_id: u32, jq: &str) -> Result<String, String> {
+        let raw_data = self.query_api(&format!("songs/{}", song_id), "").await?;
 
-        let mut jq = jq_rs::compile(jq).map_err(|_| {
+        let mut jq = jq_rs::compile(&format!("{}{}", ".response |", jq)).map_err(|_| {
             format!(
                 "**This shouldn't happen in production!!!**\nError occured while compiling jq program!",
             )
         })?;
-        let jq_out = jq.run(&raw_data).unwrap();
+        let jq_out = jq
+            .run(&raw_data)
+            .map_err(|e| format!("Error occured while parsing the API response: {}", e))?;
 
         Ok(serde_json::from_str::<String>(&jq_out).unwrap())
     }
 
+    /// returns a URL of song's cover image
     pub async fn img(&self, song_id: u32) -> Result<String, String> {
-        self.query_string_from_song_object(song_id, ".response.song.header")
-            .await
+        self.jq_song_info(song_id, ".song.header_image_url").await
     }
 
+    /// returns a path to downloaded img
+    pub async fn download_img(&self, img_url: &str) -> Result<String, String> {
+        // TODO many things in here could fail therefore
+        // it should be handled more properly
+        let resp = self
+            .client
+            .get(img_url)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let filename: String = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(30)
+            .map(char::from)
+            .collect();
+
+        dbg!(&filename);
+
+        let mut file = std::fs::File::create(&filename)
+            .map_err(|_| "Failed to create a new file".to_string())?;
+        let mut img_data = Cursor::new(
+            resp.bytes()
+                .await
+                .map_err(|_| "Empty response".to_string())?,
+        );
+        std::io::copy(&mut img_data, &mut file);
+
+        Ok(filename)
+    }
+
+    /// returns formatted lyrics (without annotations)
     pub async fn lyrics(&self, song_id: u32) -> Result<String, String> {
-        let url = self
-            .query_string_from_song_object(song_id, ".response.song.url")
-            .await?;
-        let document = self.client.get(url).send().await?.text().await?;
+        let song_url = self.jq_song_info(song_id, ".response.song.url").await?;
+        let document = self.safe_get(self.client.get(song_url)).await?;
+
         let html = Html::parse_document(&document);
+        let selector = Selector::parse("#lyrics-root > div").unwrap();
+
+        // this will return iterator of paragraphs
+        // so it needs to be formatted
+        let mut lyrics = String::new();
+        // TODO use iterator magic here instead
+        for p in html.select(&selector) {
+            writeln!(&mut lyrics, "{}\n", p.value().name());
+        }
         dbg!(html);
         Ok("".to_string())
         // let selector = Selector::parse("")

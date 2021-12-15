@@ -12,11 +12,12 @@ use serenity::{
     framework::standard::{
         StandardFramework,
         help_commands, HelpOptions,
-        macros::{command, group, help},
+        macros::{command, group, help, hook},
         Args, CommandResult, CommandGroup
     }
 };
-use super::commands::{QUERY_GROUP, GeniusApiWrapper, GeniusApi};
+use super::commands::{QUERY_GROUP, GeniusApiWrapper};
+use crate::genius_dl::GeniusApi;
 
 struct Handler;
 
@@ -30,7 +31,7 @@ impl EventHandler for Handler {
 }
 
 #[help]
-#[command_not_found_text = "Could not find: `{}`."]
+#[description("To get help with an individual command, pass its name as an argument to this command.")]
 async fn my_help(
    context: &Context,
    msg: &Message,
@@ -43,6 +44,10 @@ async fn my_help(
     Ok(())
 }
 
+#[hook]
+async fn unknown_command(ctx: &Context, msg: &Message, unknown_command_name: &str) {
+    msg.channel_id.say(ctx, format!("Command '{}' not found!", unknown_command_name)).await;
+}
 pub struct Discord {
     client: Client,
 }
@@ -66,8 +71,9 @@ impl Discord {
 
         let framework = StandardFramework::new()
             .configure(|c| c.on_mention(Some(bot_id)))
+            .group(&QUERY_GROUP)
             .help(&MY_HELP)
-            .group(&QUERY_GROUP);
+            .unrecognised_command(unknown_command);
 
         let client = Client::builder(discord_token)
             .framework(framework)

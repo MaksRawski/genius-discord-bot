@@ -408,6 +408,7 @@ name = "genius"
 version = "0.1.0"
 dependencies = [
  "jq-rs",
+ "rand 0.8.4",
  "regex",
  "reqwest",
  "scraper",

@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 # clap = "2"
+rand = "0.8.0"
 reqwest = { version = "0.11" }
 scraper = "0.12.0"
 jq-rs = { version = "0.4.1", features = ["bundled"] }
