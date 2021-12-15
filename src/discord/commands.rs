@@ -39,7 +39,7 @@ async fn query(ctx: &Context, msg: &Message, args: &Args) -> Result<SongQuery, S
         .say(ctx, format!("Searching genius for: **{}**\n", arg))
         .await;
 
-    let results: Vec<SongQuery> = genius_api.search_song(arg).await.unwrap();
+    let results: Vec<SongQuery> = genius_api.search_song(arg).await?;
 
     let result = match results.len() {
         0 => {

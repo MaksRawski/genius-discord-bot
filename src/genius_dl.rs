@@ -63,7 +63,10 @@ impl GeniusApi {
         let mut jq_query = jq_rs::compile("[.response.hits[] | .result | { artist: .primary_artist.name, title: .title, id: .id }]").unwrap();
         let jq_out = jq_query.run(data).map_err(|v| v.to_string())?;
 
-        Ok(serde_json::from_str(&jq_out).unwrap())
+        serde_json::from_str(&jq_out).map_err(|e| {
+            dbg!(e);
+            "Error occured while parsing the API response".to_string()
+        })
     }
 
     pub async fn search_song(&self, query: &str) -> Result<Vec<SongQuery>, String> {
@@ -85,7 +88,10 @@ impl GeniusApi {
             .run(&raw_data)
             .map_err(|e| format!("Error occured while parsing the API response: {}", e))?;
 
-        Ok(serde_json::from_str::<String>(&jq_out).unwrap())
+        serde_json::from_str::<String>(&jq_out).map_err(|e| {
+            dbg!(e);
+            "Error occured while parsing the API response".to_string()
+        })
     }
 
     /// returns a URL of song's cover image
