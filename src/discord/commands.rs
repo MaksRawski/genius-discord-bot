@@ -5,6 +5,7 @@ use serenity::{
         Args, CommandResult,
     },
     http::request,
+    http::{typing::Typing, CacheHttp},
     model::channel::Message,
     prelude::*,
 };
@@ -172,12 +173,13 @@ async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[aliases(card)]
 #[description("Create a lyric card containing a given quote")]
 async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
     match quote_fn(ctx, msg, &args).await {
         Ok((card, img)) => {
             msg.channel_id
                 .send_files(ctx, vec![&card[..]], |m| m.content(""))
                 .await;
-
+            typing.stop();
             // TODO we would ideally like some pointer magic
             // to automatically remove those files once they
             // are no longer needed

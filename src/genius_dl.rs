@@ -110,8 +110,6 @@ impl GeniusApi {
             .map(char::from)
             .collect();
 
-        dbg!(&filename);
-
         let mut file = std::fs::File::create(&filename)
             .map_err(|_| "Failed to create a new file".to_string())?;
         let mut img_data = Cursor::new(
