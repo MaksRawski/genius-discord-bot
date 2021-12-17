@@ -45,7 +45,11 @@ async fn query(ctx: &Context, msg: &Message, args: &Args) -> Result<SongQuery, S
         0 => {
             return Err("**No results found!**".to_string());
         }
-        1 => results.get(0).unwrap(),
+        1 => {
+           let res = results.get(0).unwrap();
+           msg.channel_id.say(ctx, format!("Singe result found: **{}**", res)).await;
+           res
+        },
         _ => {
             let mut _i = 0;
             let options: String = results
