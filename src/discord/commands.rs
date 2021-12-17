@@ -56,7 +56,7 @@ async fn query(ctx: &Context, msg: &Message, args: &Args) -> Result<SongQuery, S
                 })
                 .collect();
 
-            msg.channel_id
+            let options_msg = msg.channel_id
                 .say(
                     ctx,
                     format!(
@@ -64,7 +64,7 @@ async fn query(ctx: &Context, msg: &Message, args: &Args) -> Result<SongQuery, S
                         options
                     ),
                 )
-                .await;
+                .await.map_err(|e| e.to_string())?;
 
             if let Some(answer) = &msg
                 .author
@@ -72,6 +72,7 @@ async fn query(ctx: &Context, msg: &Message, args: &Args) -> Result<SongQuery, S
                 .timeout(Duration::from_secs(60))
                 .await
             {
+                options_msg.delete(ctx).await;
                 // let re = Regex::new(r"\d+").unwrap();
                 // re.captures
                 // TODO use regex here to figure out chosen index
