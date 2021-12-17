@@ -182,7 +182,7 @@ async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
-#[aliases(quote)]
+#[aliases(c, quote, q)]
 #[description("Create a lyric card containing a given quote")]
 async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
@@ -274,7 +274,7 @@ async fn custom_card_fn(ctx: &Context, msg: &Message, args: &Args) -> Result<(),
 }
 
 #[command]
-#[aliases(cc)]
+#[aliases(cc, custom_quote, cq)]
 #[description("Create a lyric card with a custom quote")]
 async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if let Err(e) = custom_card_fn(ctx, msg, &args).await {
