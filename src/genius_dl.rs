@@ -130,21 +130,20 @@ impl GeniusApi {
 
     /// returns formatted lyrics (without annotations)
     pub async fn lyrics(&self, song_id: u32) -> Result<String, String> {
-        let song_url = self.jq_song_info(song_id, ".response.song.url").await?;
+        let song_url = self.jq_song_info(song_id, ".song.url").await?;
         let document = self.safe_get(self.client.get(song_url)).await?;
 
         let html = Html::parse_document(&document);
-        let selector = Selector::parse("#lyrics-root > div").unwrap();
+        let selector = Selector::parse("#lyrics-root > div:not(:last-child)").unwrap();
 
         // this will return iterator of paragraphs
         // so it needs to be formatted
         let mut lyrics = String::new();
         // TODO use iterator magic here instead
         for p in html.select(&selector) {
-            writeln!(&mut lyrics, "{}\n", p.value().name());
+            writeln!(&mut lyrics, "{}", p.text().map(|s| format!("{}\n", s)).collect::<String>());
         }
-        dbg!(html);
-        Ok("".to_string())
+        Ok(lyrics)
         // let selector = Selector::parse("")
     }
 }
