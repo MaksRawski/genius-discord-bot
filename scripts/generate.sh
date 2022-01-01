@@ -20,10 +20,10 @@ cp "$img" $dir
 cd $dir
 
 # scale the image and remove any metadata
-if [ $(magick identify -format '%w' "$img") -gt $(magick identify -format '%h' "$img") ]; then
-	magick $img +profile "*" -resize x600 resized.png
+if [ $(identify -format '%w' "$img") -gt $(identify -format '%h' "$img") ]; then
+	convert $img +profile "*" -resize x600 resized.png
 else
-	magick $img +profile "*" -resize 900x resized.png
+	convert $img +profile "*" -resize 900x resized.png
 fi
 
 # crop the image to be 900x600
