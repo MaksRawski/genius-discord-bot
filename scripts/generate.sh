@@ -1,5 +1,5 @@
 #!/bin/bash
-# requires: Lato, Source Code Pro fonts
+# requires Lato font
 
 img=$1
 caption="$(echo $2 | fold -sw 34)" 
@@ -16,6 +16,7 @@ fi
 
 cwd="$(pwd)"
 dir=$(mktemp -d)
+cp scripts/quote.png $dir
 cp "$img" $dir
 cd $dir
 
@@ -40,8 +41,7 @@ convert darkened.png -gravity SouthWest \
 i=$(( $(echo "$caption" | wc -l)-1 ))
 
 # add quote symbol to first line
-convert captioned.png -font Source-Code-Pro-Medium -fill white -pointsize 95\
-	-draw "text 25,$((405-$i*80+70)) '“'" captioned.png
+composite -geometry 42x42+25+$((405-$i*80)) quote.png captioned.png captioned.png
 
 echo "$caption" | while read bar ; do
 	# create text
