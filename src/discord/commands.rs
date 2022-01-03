@@ -191,7 +191,6 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             msg.channel_id
                 .send_files(ctx, vec![&card[..]], |m| m.content(""))
                 .await;
-            typing.stop();
             // TODO we would ideally like some pointer magic
             // to automatically remove those files once they
             // are no longer needed
@@ -202,6 +201,7 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             msg.channel_id.say(ctx, e).await;
         }
     }
+    typing.stop();
     Ok(())
 }
 

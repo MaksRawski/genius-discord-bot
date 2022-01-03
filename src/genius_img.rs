@@ -1,8 +1,7 @@
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use std::ops::Add;
-use std::path::Path;
-use std::process::{Command, ExitStatusError};
+use std::process::Command;
 
 // TODO use lifetimes for the filename
 /// returns filename of the output image
@@ -19,7 +18,6 @@ pub fn generate_card(
         .map(char::from)
         .collect::<String>()
         .add(".jpg");
-
 
     Command::new("./scripts/generate.sh")
         .args([img, caption, author, track, &filename])
