@@ -154,12 +154,6 @@ async fn find(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[aliases(l, text)]
 async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .say(
-            ctx,
-            "This command is still work in progress. Formatting sucks!".to_string(),
-        )
-        .await;
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
