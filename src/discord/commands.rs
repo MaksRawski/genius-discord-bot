@@ -159,7 +159,14 @@ async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     match query(ctx, msg, &args).await {
         Ok(s) => match genius_api.lyrics(s.id).await {
-            Ok(l) => msg.channel_id.say(ctx, l).await,
+            Ok(l) => {
+                msg.channel_id.send_message(ctx, |m| {
+                    m.embed(|e| {
+                        e.description(l);
+                        e.color(0xffff64)
+                    })
+                }).await
+            }
             Err(e) => {
                 msg.channel_id
                     .say(ctx, format!("Problem occured while getting lyrics: {}", e))
