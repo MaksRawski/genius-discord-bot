@@ -154,12 +154,6 @@ async fn find(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[aliases(l, text)]
 async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .say(
-            ctx,
-            "This command is still work in progress. Formatting sucks!".to_string(),
-        )
-        .await;
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
@@ -191,7 +185,6 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             msg.channel_id
                 .send_files(ctx, vec![&card[..]], |m| m.content(""))
                 .await;
-            typing.stop();
             // TODO we would ideally like some pointer magic
             // to automatically remove those files once they
             // are no longer needed
@@ -202,6 +195,7 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             msg.channel_id.say(ctx, e).await;
         }
     }
+    typing.stop();
     Ok(())
 }
 

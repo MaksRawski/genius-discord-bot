@@ -2,6 +2,7 @@ use jq_rs;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use reqwest::{self, Request, RequestBuilder};
+use regex::Regex;
 use scraper::{element_ref::Select, Html, Selector};
 use serde::Deserialize;
 use serde_json;
@@ -134,16 +135,12 @@ impl GeniusApi {
         let document = self.safe_get(self.client.get(song_url)).await?;
 
         let html = Html::parse_document(&document);
-        let selector = Selector::parse("#lyrics-root > div:not(:last-child)").unwrap();
+        let selector = Selector::parse("div[data-lyrics-container='true']").unwrap();
 
-        // this will return iterator of paragraphs
-        // so it needs to be formatted
-        let mut lyrics = String::new();
-        // TODO use iterator magic here instead
-        for p in html.select(&selector) {
-            writeln!(&mut lyrics, "{}", p.text().map(|s| format!("{}\n", s)).collect::<String>());
-        }
+        let raw_lyrics = html.select(&selector).map(|verse| verse.inner_html()).collect::<String>();
+        let remove_annotations = Regex::new("(<br>)|<[^br].*?>").unwrap();
+
+        let lyrics = remove_annotations.replace_all(&raw_lyrics, "$1").replace("<br>", "\n");
         Ok(lyrics)
-        // let selector = Selector::parse("")
     }
 }
