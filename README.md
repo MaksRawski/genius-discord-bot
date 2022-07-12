@@ -9,6 +9,14 @@
 - [ ] custom templates
 - [ ] `img` has a carrousel of all the possible images
 
+# Bulding
+## Locally
+`docker build -t genius-bot .`
+
+## Cross compiling to ARM
+`docker build -t genius-bot-arm -f Dockerfile.arm .`
+
+# Heroku
 This project is powered by heroku.
 To build it and publish use `heroku container:push worker && heroku container:release worker`.
 Remember to `heroku container:login` first!

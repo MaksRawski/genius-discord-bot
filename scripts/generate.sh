@@ -6,6 +6,7 @@ caption="$(echo "$2" | fold -sw 34)"
 author="$(echo "$3" | sed 's/.*/\U&/')"
 track_name="$(echo "$4" | sed 's/.*/\U&/')"
 info="$author \\\"$track_name\\\""
+font="Noto-Sans-Bold -weight 500"
 
 out="${5:-out.png}"
 
@@ -35,7 +36,7 @@ convert cropped.png -brightness-contrast -20x-25 darkened.png
 
 # add author
 convert darkened.png -gravity SouthWest \
-	-pointsize 32 -fill white -font Lato-Bold \
+	-pointsize 32 -fill white -font $font \
 	-draw "text 90,52 \"$info\"" captioned.png
 
 i=$(( $(echo "$caption" | wc -l)-1 ))
@@ -46,7 +47,7 @@ composite -geometry 42x42+25+$((405-$i*80)) quote.png captioned.png captioned.pn
 echo "$caption" | while read bar ; do
 	# create text
 	convert -background white -bordercolor white \
-		-pointsize 50 -fill white -font Lato-Bold \
+		-pointsize 50 -fill white -font $font \
 		-gravity South label:"$bar" -extent x68 -border 5x0 \
 		-fill black -annotate +0+5 "$bar" \
 		caption.png

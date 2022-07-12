@@ -1,5 +1,4 @@
-#![feature(exit_status_error)]
+#![allow(unused_must_use)]
 
 pub mod discord;
-pub mod genius_dl;
-pub mod genius_img;
+pub mod genius;

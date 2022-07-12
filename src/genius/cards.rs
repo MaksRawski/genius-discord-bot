@@ -1,3 +1,4 @@
+use log::error;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use std::ops::Add;
@@ -6,12 +7,7 @@ use std::process::Command;
 // TODO use lifetimes for the filename
 /// returns filename of the output image
 /// img must exist and be valid, no checks are done!
-pub fn generate_card(
-    img: &str,
-    caption: &str,
-    author: &str,
-    track: &str,
-) -> Result<String, String> {
+pub fn generate_card(img: &str, caption: &str, author: &str, track: &str) -> Option<String> {
     let filename: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(30)
@@ -22,9 +18,8 @@ pub fn generate_card(
     Command::new("./scripts/generate.sh")
         .args([img, caption, author, track, &filename])
         .status()
-        .unwrap()
-        .exit_ok()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| error!("Error in card generation: {}", e))
+        .ok()?;
 
-    Ok(filename)
+    Some(filename)
 }
