@@ -10,4 +10,5 @@ build:
   script:
     - cargo build --release
   artifacts:
-    - target/
+    paths:
+      - target/
