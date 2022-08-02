@@ -1,0 +1,13 @@
+image: "debian:latest"
+
+build:
+  before_script:
+    - dpkg --add-architecture arm64
+    - apt-get update -y
+    - apt-get install -y qemu-user curl g++:arm64
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-host aarch64-unknown-linux-gnu
+    - source "$HOME/.cargo/env"
+  script:
+    - cargo build --release
+  artifacts:
+    - target/
