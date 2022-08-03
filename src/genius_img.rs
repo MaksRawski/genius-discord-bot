@@ -22,8 +22,6 @@ pub fn generate_card(
     Command::new("./scripts/generate.sh")
         .args([img, caption, author, track, &filename])
         .status()
-        .unwrap()
-        .exit_ok()
         .map_err(|e| e.to_string())?;
 
     Ok(filename)
