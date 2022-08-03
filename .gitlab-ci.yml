@@ -1,14 +1,24 @@
 image: "debian:latest"
 
+# install rust and libssl dependency
+before_script:
+  - dpkg --add-architecture arm64
+  - apt-get update -y
+  - apt-get install -y qemu-user wget pkg-config:arm64 gcc:arm64 libssl-dev:arm64
+  - wget https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init
+  - chmod +x rustup-init
+  - ./rustup-init -y --profile minimal
+  - source "$HOME/.cargo/env"
+
 build:
-  before_script:
-    - dpkg --add-architecture arm64
-    - apt-get update -y
-    - apt-get install -y qemu-user curl g++:arm64
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-host aarch64-unknown-linux-gnu
-    - source "$HOME/.cargo/env"
   script:
     - cargo build --release
+
   artifacts:
+    paths:
+      - target/release/genius
+
+  cache:
+    key: dependencies-cache-$CI_COMMIT_BRANCH
     paths:
       - target/
