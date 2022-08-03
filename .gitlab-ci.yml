@@ -12,9 +12,9 @@ before_script:
 
 cache:
   key:
-    paths:
-      - target/
-      - ~/.cargo/registry
+  paths:
+    - target/
+    - ~/.cargo/registry
 
 build:
   script:
