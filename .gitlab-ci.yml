@@ -10,6 +10,12 @@ before_script:
   - ./rustup-init -y --profile minimal
   - source "$HOME/.cargo/env"
 
+cache:
+  key:
+    paths:
+      - target/
+      - ~/.cargo/registry
+
 build:
   script:
     - cargo build --release
@@ -17,8 +23,3 @@ build:
   artifacts:
     paths:
       - target/release/genius
-
-  cache:
-    key: dependencies-cache-$CI_COMMIT_BRANCH
-    paths:
-      - target/
