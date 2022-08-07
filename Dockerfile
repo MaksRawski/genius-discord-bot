@@ -7,4 +7,4 @@ RUN apt-get install -y jq imagemagick fonts-lato
 
 RUN cargo build --release
 
-CMD cargo run --release
+CMD LANG=en_US.UTF-8 LANGUAGE=en.UTF-8 cargo run --release
