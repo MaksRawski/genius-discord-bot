@@ -1,7 +1,17 @@
 image: debian
 
 before_script:
-  - apt-get update -y && apt-get install -y apt-transport-https ca-certificates curl git gnupg2 software-properties-common docker-ce-cli binfmt-support qemu-user-static
+  - apt-get update -y
+  - apt-get install -y
+      apt-transport-https
+      ca-certificates
+      curl
+      git
+      gnupg2
+      software-properties-common
+      docker-ce-cli
+      binfmt-support
+      qemu-user-static
   - update-binfmts --enable
 
 variables:
