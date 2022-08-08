@@ -27,8 +27,8 @@ stages:
     paths:
       - genius-$CI_JOB_NAME.tar
 
-build:x86:
+x86:
   <<: *build-template
 
-build:arm64:
+arm64:
   <<: *build-template
