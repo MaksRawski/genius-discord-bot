@@ -6,6 +6,7 @@ before_script:
       docker.io
       binfmt-support
       qemu-user-static
+      curl
   - update-binfmts --enable
 
   # install
