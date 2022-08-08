@@ -37,7 +37,7 @@ stages:
 .build-arch-template: &build-template
   stage: build
   script:
-    - docker buildx build --pull --platform linux/$CI_JOB_NAME -t genius .
+    - docker buildx build --load --platform linux/$CI_JOB_NAME -t genius .
     - docker export --output="genius-$CI_JOB_NAME.tar" genius
   artifacts:
     paths:
