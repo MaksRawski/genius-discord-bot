@@ -1,5 +1,4 @@
 use jq_rs;
-use log::error;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use regex::Regex;
@@ -11,6 +10,7 @@ use serenity::prelude::TypeMapKey;
 use std::fmt;
 use std::io::Cursor;
 use std::sync::Arc;
+use tracing::error;
 
 #[derive(Deserialize, Clone)]
 pub struct SongQuery {

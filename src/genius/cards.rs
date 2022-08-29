@@ -1,8 +1,8 @@
-use log::error;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use std::ops::Add;
 use std::process::Command;
+use tracing::error;
 
 // TODO use lifetimes for the filename
 /// returns filename of the output image

@@ -23,7 +23,7 @@ impl Handler {}
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, _: Context, ready: Ready) {
-        println!("Connected as {}", ready.user.name);
+        tracing::info!("Connected as {}", ready.user.name);
     }
 }
 
@@ -68,6 +68,7 @@ impl Discord {
 
         let framework = StandardFramework::new()
             .configure(|c| c.on_mention(Some(bot_id)).prefix("~"))
+            // .before(f)
             .group(&QUERY_GROUP)
             .group(&CARD_GROUP)
             .help(&MY_HELP)
@@ -88,7 +89,7 @@ impl Discord {
     }
     pub async fn start(&mut self) {
         if let Err(why) = self.client.start().await {
-            eprintln!("Client error: {:?}", why);
+            tracing::error!("Client error: {:?}", why);
         }
     }
 }

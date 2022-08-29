@@ -1,21 +1,25 @@
 use dotenv::dotenv;
 use genius::discord::Discord;
 use std::env;
-use tracing::{info, Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing::info;
+use tracing_subscriber::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::TRACE)
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    dotenv().ok();
+    let _guard = sentry::init((
+        env::var("SENTRY_URL").expect("SENTRY_URL not found!"),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            traces_sample_rate: 1.0,
+            ..Default::default()
+        },
+    ));
+    tracing_subscriber::registry()
+        .with(sentry_tracing::layer())
+        .init();
 
     info!("logger initalized!");
-    dotenv().ok();
 
     let discord_token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found!");
     let genius_token = env::var("GENIUS_TOKEN").expect("GENIUS_TOKEN not found!");

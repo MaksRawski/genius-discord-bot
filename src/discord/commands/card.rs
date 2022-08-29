@@ -1,7 +1,6 @@
 use super::query::query;
 use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, SongQuery};
-use log::info;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::http::Typing;
 use serenity::model::prelude::Message;
@@ -36,6 +35,11 @@ async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Optio
 #[aliases(c)]
 #[description("Create a lyric card containing a given quote")]
 async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    tracing::info_span!(
+        "Creating a card",
+        user = msg.author.name,
+        args = args.message()
+    );
     let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
     let card = quote(ctx, msg, &args, args.message())
         .await
@@ -54,6 +58,11 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[aliases(cc)]
 #[description("Create a lyric card with a custom quote")]
 async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    tracing::info_span!(
+        "Creating a card",
+        user = msg.author.name,
+        args = args.message()
+    );
     let (img, q) = search_img(ctx, msg, &args).await.ok_or("")?;
     msg.channel_id.say(ctx, "What should the caption be?").await;
 

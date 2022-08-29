@@ -1,5 +1,6 @@
-/target
+target/
+.undodir/
+.vscode/
+buildx-cache/
 .env
-.undodir
-.vscode
 Cargo.lock

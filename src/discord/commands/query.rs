@@ -1,5 +1,4 @@
 use crate::genius::{GeniusApiWrapper, SongQuery};
-use log::error;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
@@ -13,7 +12,7 @@ pub struct Query;
 pub async fn query(ctx: &Context, msg: &Message, args: &Args) -> Option<SongQuery> {
     let arg = args.message();
     if arg.len() < 2 {
-        error!("Query too short");
+        tracing::error!("Query too short");
         return None;
     }
     let data = ctx.data.read().await;
@@ -90,7 +89,7 @@ async fn get_thumbnail(ctx: &Context, msg: &Message, args: &Args) -> Option<Stri
     let img_url = genius_api
         .img(song_id)
         .await
-        .ok_or_else(|| error!("Error occured while downloading the cover image"))
+        .ok_or_else(|| tracing::error!("Error occured while downloading the cover image"))
         .ok()?;
 
     Some(img_url)
@@ -113,6 +112,11 @@ async fn img(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[aliases(l)]
 async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    tracing::info_span!(
+        "User: {:?} asked for lyrics of {:?}",
+        user = msg.author.name,
+        lyrics = &args.message()
+    );
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
