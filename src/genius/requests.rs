@@ -133,7 +133,7 @@ impl GeniusApi {
                 .map_err(|_| error!("Empty response"))
                 .ok()?,
         );
-        std::io::copy(&mut img_data, &mut file);
+        std::io::copy(&mut img_data, &mut file).unwrap();
 
         Some(filename)
     }

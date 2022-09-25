@@ -57,7 +57,8 @@ async fn unknown_command(ctx: &Context, msg: &Message, unknown_command_name: &st
             ctx,
             format!("Command '{}' not found!", unknown_command_name),
         )
-        .await;
+        .await
+        .unwrap();
     msg.channel_id
         .say(
             ctx,
@@ -66,7 +67,8 @@ async fn unknown_command(ctx: &Context, msg: &Message, unknown_command_name: &st
                 PREFIX
             ),
         )
-        .await;
+        .await
+        .unwrap();
 }
 pub struct Discord {
     client: Client,

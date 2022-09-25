@@ -53,7 +53,7 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 .timeout(Duration::from_secs(60))
                 .await
             {
-                options_msg.unwrap().delete(ctx);
+                options_msg.unwrap().delete(ctx).await.unwrap();
                 let index = if let Ok(v) = answer.content.parse::<usize>() {
                     v.max(1) - 1
                 } else {

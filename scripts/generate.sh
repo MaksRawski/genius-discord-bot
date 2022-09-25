@@ -3,8 +3,8 @@
 
 img=$1
 caption="$(echo "$2" | fold -sw 34)"
-author="$(echo "$3" | sed 's/.*/\U&/')"
-track_name="$(echo "$4" | sed 's/.*/\U&/')"
+author="$(echo "$3" | PERLIO=:utf8 perl -pe '$_=uc')"
+track_name="$(echo "$4" | PERLIO=:utf8 perl -pe '$_=uc')"
 info="$author \\\"$track_name\\\""
 font="Noto-Sans-Bold -weight 500"
 

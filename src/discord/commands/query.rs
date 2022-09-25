@@ -32,7 +32,8 @@ async fn img(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .ok_or("Failed to get Thumbnail")?;
 
     msg.channel_id
-        .send_files(ctx, vec![&img[..]], |m| m.content(""));
+        .send_files(ctx, vec![&img[..]], |m| m.content(""))
+        .await?;
 
     Ok(())
 }
@@ -50,12 +51,14 @@ async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     if let Some(s) = query_song(ctx, msg, &args).await {
         if let Some(l) = genius_api.lyrics(s.id).await {
-            msg.channel_id.send_message(ctx, |m| {
-                m.embed(|e| {
-                    e.description(l);
-                    e.color(0xffff64)
+            msg.channel_id
+                .send_message(ctx, |m| {
+                    m.embed(|e| {
+                        e.description(l);
+                        e.color(0xffff64)
+                    })
                 })
-            });
+                .await?;
         } else {
             send_error!(ctx, msg, "Error occured while getting lyrics!");
         };

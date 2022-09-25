@@ -27,7 +27,7 @@ async fn search_img(ctx: &Context, msg: &Message, args: &Args) -> Option<(String
 async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Option<String> {
     let (img, q) = search_img(ctx, msg, args).await?;
     let card = generate_card(&img, &lyrics, &q.artist, &q.title)?;
-    std::fs::remove_file(img);
+    std::fs::remove_file(img).unwrap();
 
     Some(card)
 }
@@ -48,10 +48,10 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
-        .await;
+        .await?;
     typing.stop();
 
-    std::fs::remove_file(card);
+    std::fs::remove_file(card).unwrap();
     Ok(())
 }
 
@@ -79,10 +79,10 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         return Ok(());
     };
     let card = generate_card(&img, &caption, &q.artist, &q.title).ok_or("")?;
-    std::fs::remove_file(img);
+    std::fs::remove_file(img).unwrap();
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
-        .await;
+        .await?;
 
     Ok(())
 }
