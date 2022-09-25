@@ -16,6 +16,8 @@ use serenity::{
     prelude::*,
 };
 
+const PREFIX: &str = "~";
+
 struct Handler;
 
 impl Handler {}
@@ -28,18 +30,23 @@ impl EventHandler for Handler {
 }
 
 #[help]
-#[description(
-    "To get help with an individual command, pass its name as an argument to this command."
-)]
 async fn my_help(
     context: &Context,
     msg: &Message,
     args: Args,
-    help_options: &'static HelpOptions,
+    help_options_template: &'static HelpOptions,
     groups: &[&'static CommandGroup],
     owners: HashSet<UserId>,
 ) -> CommandResult {
-    let _ = help_commands::with_embeds(context, msg, args, help_options, groups, owners).await;
+    let mut help_options = help_options_template.to_owned();
+
+    help_options.strikethrough_commands_tip_in_guild = None;
+    help_options.strikethrough_commands_tip_in_dm = None;
+    help_options.max_levenshtein_distance = 2;
+    help_options.description_label =
+        "To get help with an individual command, pass its name as an argument to this command.";
+
+    let _ = help_commands::with_embeds(context, msg, args, &help_options, groups, owners).await;
     Ok(())
 }
 
@@ -49,6 +56,15 @@ async fn unknown_command(ctx: &Context, msg: &Message, unknown_command_name: &st
         .say(
             ctx,
             format!("Command '{}' not found!", unknown_command_name),
+        )
+        .await;
+    msg.channel_id
+        .say(
+            ctx,
+            format!(
+                "Send `{}help` to see the list of possible commands.",
+                PREFIX
+            ),
         )
         .await;
 }
@@ -67,7 +83,7 @@ impl Discord {
         };
 
         let framework = StandardFramework::new()
-            .configure(|c| c.on_mention(Some(bot_id)).prefix("~"))
+            .configure(|c| c.on_mention(Some(bot_id)).prefix(PREFIX))
             // .before(f)
             .group(&QUERY_GROUP)
             .group(&CARD_GROUP)

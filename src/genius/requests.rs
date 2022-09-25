@@ -71,7 +71,7 @@ impl GeniusApi {
         let jq_out = jq_query.run(data).map_err(|v| v.to_string()).ok()?;
 
         serde_json::from_str(&jq_out)
-            .map_err(|e| error!("While parsing the API response: {}", e))
+            .map_err(|e| tracing::error!("While parsing the API response: {}", e))
             .ok()
     }
 

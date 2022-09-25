@@ -1,6 +1,7 @@
-use super::query::query;
+use super::utils::query_song;
 use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, SongQuery};
+use crate::send_message;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::http::Typing;
 use serenity::model::prelude::Message;
@@ -15,7 +16,7 @@ async fn search_img(ctx: &Context, msg: &Message, args: &Args) -> Option<(String
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
-    let q = query(ctx, msg, args).await?;
+    let q = query_song(ctx, msg, args).await?;
 
     let img_url = genius_api.img(q.id).await?;
     let img = genius_api.download_img(&img_url).await?;
@@ -35,10 +36,10 @@ async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Optio
 #[aliases(c)]
 #[description("Create a lyric card containing a given quote")]
 async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    tracing::info_span!(
-        "Creating a card",
-        user = msg.author.name,
-        args = args.message()
+    tracing::info!(
+        "User \"{}#{}\" is creating a card.",
+        msg.author.name,
+        msg.author.id
     );
     let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
     let card = quote(ctx, msg, &args, args.message())
@@ -48,9 +49,9 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
         .await;
+    typing.stop();
 
     std::fs::remove_file(card);
-    typing.stop();
     Ok(())
 }
 
@@ -58,13 +59,13 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[aliases(cc)]
 #[description("Create a lyric card with a custom quote")]
 async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    tracing::info_span!(
-        "Creating a card",
-        user = msg.author.name,
-        args = args.message()
+    tracing::info!(
+        "User \"{}#{}\" is creating a custom card.",
+        msg.author.name,
+        msg.author.id
     );
     let (img, q) = search_img(ctx, msg, &args).await.ok_or("")?;
-    msg.channel_id.say(ctx, "What should the caption be?").await;
+    send_message!(ctx, msg, "What should the caption be?");
 
     let caption = if let Some(answer) = &msg
         .author
@@ -74,7 +75,7 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     {
         answer.content.clone()
     } else {
-        msg.channel_id.say(ctx, "Time's up!").await;
+        send_message!(ctx, msg, "Time's up!");
         return Ok(());
     };
     let card = generate_card(&img, &caption, &q.artist, &q.title).ok_or("")?;
