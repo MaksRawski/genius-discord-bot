@@ -2,7 +2,7 @@ FROM rust
 
 WORKDIR /genius
 COPY . .
-RUN apt-get update && apt-get install -y -f fonts-lato imagemagick openssl ca-certificates
+RUN apt-get update && apt-get install -y -f jq libjq-dev libonig5 libonig-dev openssl ca-certificates fonts-lato imagemagick
 
 ENV JQ_LIB_DIR=/usr/lib/libjq.so
 RUN cargo build --release
