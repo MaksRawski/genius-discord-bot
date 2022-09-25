@@ -1,24 +1,11 @@
-FROM rust:latest
+FROM rust
 
-ENV MAGICK_VERSION 7.1.0-39
-
-RUN git clone https://github.com/ImageMagick/ImageMagick && cd ImageMagick \
- && git checkout $MAGICK_VERSION \
- && ./configure --with-magick-plus-plus=no --with-perl=no \
- && make \
- && make install \
- && cd .. \
- && rm -r ImageMagick
-
-
-WORKDIR /usr/src/genius-bot
+WORKDIR /genius
 COPY . .
+RUN apt-get update && apt-get install -y -f fonts-lato imagemagick openssl ca-certificates
 
-RUN apt-get update -y
-RUN apt-get install jq fonts-lato -y
+ENV JQ_LIB_DIR=/usr/lib/libjq.so
+RUN cargo build --release
 
-
-# FROM setup as build
-# RUN cargo build --release
-
-# CMD cargo run --release
+# there is probably a better way of going about this
+CMD while :; do /genius/target/release/genius; sleep 10; done

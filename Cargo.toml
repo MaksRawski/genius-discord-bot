@@ -6,10 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-jq-rs = "0.4.1"
-magick_rust = "0.16.0"
-
 dotenv = "0.15.0"
+jq-rs = "0.4.1"
+# magick_rust = "0.16.0"
 rand = "0.8.0"
 regex = "1.5.4"
 reqwest = "0.11"
