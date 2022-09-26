@@ -1,29 +1,5 @@
 image: debian
 
-before_script:
-  - apt-get update -y
-  - apt-get install -y
-      docker.io
-      binfmt-support
-      qemu-user-static
-      curl
-  - update-binfmts --enable
-
-  # install
-  - docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
-  - docker run --privileged --rm tonistiigi/binfmt --install all
-
-  # install-buildx-plugin
-  - mkdir -p ~/.docker/cli-plugins
-  - curl -s https://api.github.com/repos/docker/buildx/releases/latest |
-      grep "browser_download_url.*linux-amd64" | cut -d ':' -f 2,3 | tr -d \" |
-      xargs curl -L -o ~/.docker/cli-plugins/docker-buildx
-  - chmod a+x ~/.docker/cli-plugins/docker-buildx
-
-  # use docker-container buildx plugin
-  - docker buildx create --driver docker-container --use
-  - docker buildx inspect --bootstrap
-
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://docker:2375/
@@ -35,18 +11,12 @@ stages:
   - build
 
 .build-arch-template: &build-template
+  image: jonoh/docker-buildx-qemu
   stage: build
   script:
-    - mkdir -p target-cache cargo-cache
+    - update-binfmts --enable
     - docker buildx build --platform linux/$CI_JOB_NAME
-      -o type=docker,dest=genius-$CI_JOB_NAME.tar
-      -v $(pwd)/target-cache:/usr/src/genius-bot/target
-      -v $(pwd)/cargo-cache:/usr/local/cargo .
-  cache:
-    key: $CI_COMMIT_BRANCH
-    paths:
-      - target-cache/
-      - cargo-cache/
+      -o type=docker,dest=- . > genius-$CI_JOB_NAME.tar
   artifacts:
     paths:
       - genius-$CI_JOB_NAME.tar
