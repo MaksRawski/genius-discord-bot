@@ -1,15 +1,29 @@
-# TODO:
-- [ ] use newlines from messages
-- [ ] make it buid properly on ARM
-- [ ] write a proper readme
-- [ ] clean up commands
-- [ ] more consistent error handling, started on branch: `ApiErrors`
-- [ ] `find_artist`, `find_album`
-- [ ] make `find_*` pipeable (like in `xargs`) to other commands like music bot (`@genius find asdf | -p`)
-- [ ] custom templates
-- [ ] `img` has a carrousel of all the possible images
+# Building
 
-This project is powered by heroku.
-To build it and publish use `heroku container:push worker && heroku container:release worker`.
-Remember to `heroku container:login` first!
-Also remember to check which discord token is selected in `.env`.
+## Pre-builts
+Pre-built binaries as well as docker images are available to download from the releases page.
+To use them you will need to provide them your `.env` (with `DISCORD_TOKEN` and `GENIUS_TOKEN`).
+To do that, with a container you will need to run:
+
+```
+docker cp .env genius:/genius/.env
+```
+
+In case of a binary make sure that you have: `genius` (binary), `.env` and `scripts/` all in the same folder.
+
+## Locally to current arch
+`docker build -t genius-bot .`
+
+## To different one e.g. ARM (which is my main target)
+I find buildx to work best, more in-depth build process can be found in `.gitlab-ci.yml`.
+
+
+1. Create a builder for desired architecture:
+```
+docker buildx create --driver docker-container --platform linux/arm64 --use
+```
+
+2. Start the build:
+```
+docker buildx build --pull --platform linux/arm64 .
+```

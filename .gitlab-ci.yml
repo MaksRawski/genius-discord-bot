@@ -1,5 +1,3 @@
-image: debian
-
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://docker:2375/
@@ -16,12 +14,20 @@ stages:
   script:
     - update-binfmts --enable
     - docker buildx create --driver docker-container --use
+
     - docker buildx build --platform linux/$CI_JOB_NAME
-      -o type=docker,dest=- . > genius-$CI_JOB_NAME.tar
+      -t genius -o type=docker,dest=- . > genius-img.tar
+    - docker load < genius-$CI_JOB_NAME.tar
+    - docker run --name c /bin/sh genius
+
+    - docker cp c:/genius/target/release/genius .
+    - docker rm -f c
   artifacts:
     paths:
-      - genius-$CI_JOB_NAME.tar
+      - genius-img.tar
+      - genius
 
+# this could be simplified
 amd64:
   <<: *build-template
 
