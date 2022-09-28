@@ -39,9 +39,11 @@ stages:
       - target/release/genius
 
   cache:
+    untracked: true
     paths:
       - cargo
       - target
+    when: always
 
 # this could be simplified
 amd64:
