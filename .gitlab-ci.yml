@@ -11,10 +11,18 @@ stages:
 .build-arch-template: &build-template
   image: jonoh/docker-buildx-qemu
   stage: build
-  script:
-    - update-binfmts --enable
+  before_script:
     - docker buildx create --driver docker-container --use
+    - docker buildx inspect --bootstrap
 
+    # https://askubuntu.com/a/1398147
+    - docker pull tonistiigi/binfmt:latest
+    - docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
+    - docker run --privileged --rm tonistiigi/binfmt --install all
+
+    - update-binfmts --enable
+
+  script:
     - docker buildx build --platform linux/$CI_JOB_NAME
       -t genius -o type=docker,dest=- . > genius-img.tar
     - docker load < genius-$CI_JOB_NAME.tar
@@ -22,6 +30,7 @@ stages:
 
     - docker cp c:/genius/target/release/genius .
     - docker rm -f c
+
   artifacts:
     paths:
       - genius-img.tar
