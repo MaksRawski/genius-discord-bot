@@ -12,7 +12,9 @@ docker cp .env genius:/genius/.env
 In case of a binary make sure that you have: `genius` (binary), `.env` and `scripts/` all in the same folder.
 
 ## Locally to current arch
-`docker build -t genius-bot .`
+```
+docker build -t genius-bot .
+```
 
 ## To different one e.g. ARM (which is my main target)
 I find buildx to work best, more in-depth build process can be found in `.gitlab-ci.yml`.
