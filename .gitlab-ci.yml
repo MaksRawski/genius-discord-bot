@@ -30,6 +30,7 @@ stages:
 
     - docker cp c:/genius/target .
     - docker cp c:/usr/local/cargo .
+    - ls
     - docker rm -f c
 
   artifacts:

@@ -4,7 +4,7 @@ WORKDIR /genius
 COPY . .
 
 RUN ls
-RUN mv ./cargo /usr/local/cargo
+# RUN mv ./cargo /usr/local/cargo
 
 # in CI automatically replace this line with the one above
 # and all below until apt-get install
