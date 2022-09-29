@@ -7,11 +7,15 @@ services:
 
 stages:
   - build
+  - release
 
 .build-arch-template: &build-template
   image: maksrawski/docker-buildx-qemu-ci
+  stage: build
+
   before_script:
     - bash /setup.sh
+    - ls -la
 
     # When building for arm64 `cargo build` gets stuck on `Updating crates.io index`.
     # https://github.com/rust-lang/cargo/issues/9167#issue-807444842
@@ -21,7 +25,7 @@ stages:
     # copy CI's cache of cargo dependencies and apply below fix
     # after the first `apt-get update` when building the Dockerfile
     # https://github.com/microsoft/WSL/issues/4760#issuecomment-642715044
-    - sed -i -E 's?^.*apt-get update.*$?\0\nRUN if [ -e ./cargo ]; then rm -rf /usr/local/cargo/; mv ./cargo /usr/local/cargo; fi\n
+    - sed -i -E 's?^.*apt-get update.*$?\0\nRUN if [ -e ./cargo ]; then rm -rf /usr/local/cargo/; mv ./cargo /usr/local/cargo; echo "loaded cache"; fi\n
       RUN mv /var/lib/dpkg/info/libc-bin.* /tmp/ \&\&
       dpkg --remove --force-remove-reinstreq --force-remove-essential --force-depends libc-bin \&\&
       dpkg --purge libc-bin \&\&
@@ -29,12 +33,15 @@ stages:
       mv /tmp/libc-bin.* /var/lib/dpkg/info/?' Dockerfile
 
   script:
-    - docker buildx build --platform linux/$CI_JOB_NAME
-      -t genius --load
-    - docker run --platform linux/$CI_JOB_NAME --name genius genius /bin/sh
+    - docker buildx build --platform linux/$PLATFORM
+      -t genius:local -o type=docker,dest=- . | docker load
+    - docker run --platform linux/$PLATFORM --name genius genius:local
 
     - docker cp genius:/genius/target .
     - docker cp genius:/usr/local/cargo .
+
+  after_script:
+    - docker rm -f genius
 
   artifacts:
     paths:
@@ -42,15 +49,41 @@ stages:
 
   cache:
     untracked: true
-    key: $CI_JOB_NAME
+    key: $PLATFORM
     paths:
       - cargo
       - target
 
-amd64:
-  stage: build
+.release_job-template: &release-template
+  stage: release
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG # Run this job when a tag is created
+  script:
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "target/release/genius"
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/genius-binaries/$CI_COMMIT_TAG/genius-$CI_JOB_TOKEN-$PLATFORM"'
+
+# TODO make it less repetitive
+build-amd64:
+  variables:
+    PLATFORM: amd64
   <<: *build-template
 
-arm64:
-  stage: build
+release-amd64:
+  variables:
+    PLATFORM: amd64
+  dependencies:
+    - build-amd64
+  <<: *release-template
+
+build-arm64:
+  variables:
+    PLATFORM: arm64
   <<: *build-template
+
+release-arm64:
+  variables:
+    PLATFORM: arm64
+  dependencies:
+    - build-arm64
+  <<: *release-template
