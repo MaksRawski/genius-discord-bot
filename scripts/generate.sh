@@ -1,6 +1,9 @@
 #!/bin/bash
 # requires Lato font
 
+export LANG=en_US.UTF-8
+export LANGUAGE=en.UTF-8
+
 img=$1
 caption="$(echo "$2" | fold -sw 34)"
 author="$(echo "$3" | sed 's/.*/\U&/')"

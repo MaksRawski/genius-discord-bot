@@ -9,23 +9,26 @@ stages:
   - build
 
 .build-arch-template: &build-template
-  image: jonoh/docker-buildx-qemu
+  image: maksrawski/docker-buildx-qemu-ci
   before_script:
-    - docker buildx create --driver docker-container --use
-    - docker buildx inspect --bootstrap
+    - bash /setup.sh
 
-    # https://askubuntu.com/a/1398147
-    - docker pull tonistiigi/binfmt:latest
-    - docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-*
-    - docker run --privileged --rm tonistiigi/binfmt --install all
-
-    - update-binfmts --enable
-
+    # When building for arm64 `cargo build` gets stuck on `Updating crates.io index`.
+    # https://github.com/rust-lang/cargo/issues/9167#issue-807444842
     - mkdir -p .cargo
     - echo -e "[net]\ngit-fetch-with-cli = true" > .cargo/config
 
+    # copy CI's cache of cargo dependencies and apply below fix
+    # after the first `apt-get update` when building the Dockerfile
+    # https://github.com/microsoft/WSL/issues/4760#issuecomment-642715044
+    - sed -i -E 's?^.*apt-get update.*$?\0\nRUN if [ -e ./cargo ]; then mv ./cargo /usr/local/cargo; fi\n
+      RUN mv /var/lib/dpkg/info/libc-bin.* /tmp/ \&\&
+      dpkg --remove --force-remove-reinstreq --force-remove-essential --force-depends libc-bin \&\&
+      dpkg --purge libc-bin \&\&
+      apt-get install -y libc-bin \&\&
+      mv /tmp/libc-bin.* /var/lib/dpkg/info/?' Dockerfile
+
   script:
-    - ls -a
     - docker buildx build --platform linux/$CI_JOB_NAME
       -t genius -o type=docker,dest=- . > genius-img.tar
     - docker load < genius-img.tar
@@ -47,9 +50,7 @@ stages:
     paths:
       - cargo
       - target
-    when: always
 
-# this could be simplified
 amd64:
   stage: build
   <<: *build-template
