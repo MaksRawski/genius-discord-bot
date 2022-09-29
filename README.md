@@ -1,18 +1,12 @@
 # Discord Genius Bot
 Discord bot to create genius-like cards + some other genius related utilities.
 
+# Usage
+Pre-built binaries are available to download from the releases page.
+To use them you will need to provide them `.env` (with your `DISCORD_TOKEN` and `GENIUS_TOKEN`).
+Also make sure that you have: `genius` (binary), `.env` and `scripts/` all in the same folder.
+
 # Building
-
-## Pre-builts
-Pre-built binaries as well as docker images are available to download from the releases page.
-To use them you will need to provide them your `.env` (with `DISCORD_TOKEN` and `GENIUS_TOKEN`).
-To do that, with a container you will need to run:
-
-```
-docker cp .env genius:/genius/.env
-```
-
-In case of a binary make sure that you have: `genius` (binary), `.env` and `scripts/` all in the same folder.
 
 ## Locally to current arch
 ```
