@@ -8,17 +8,6 @@ use tracing_subscriber::{filter, fmt, prelude::*, Registry};
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    // guard makes sure that we don't quit before
-    // all the events have been fully recorded and sent to sentry.io
-    // (that's probably not the right terminology but you get the point)
-    let _guard = sentry::init((
-        env::var("SENTRY_URL").expect("SENTRY_URL not found!"),
-        sentry::ClientOptions {
-            release: sentry::release_name!(),
-            traces_sample_rate: 1.0,
-            ..Default::default()
-        },
-    ));
     let stdout_log = fmt::layer()
         .pretty()
         // filter everything but the logs with genius target
@@ -27,10 +16,7 @@ async fn main() {
             metadata.target().starts_with("genius")
         }));
 
-    Registry::default()
-        .with(stdout_log)
-        .with(sentry_tracing::layer())
-        .init();
+    Registry::default().with(stdout_log).init();
 
     tracing::info!("logger initalized!");
 
