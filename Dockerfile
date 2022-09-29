@@ -10,7 +10,7 @@ RUN if $(ls cargo); then mv cargo /usr/local/cargo; fi
 # and all below until apt-get install
 RUN apt-get update
 
-# snippet below fixes segfault when libc-bin is processed after
+# fix segfault when libc-bin is processed after
 # any apt-get install when building through CI
 # https://github.com/microsoft/WSL/issues/4760#issuecomment-642715044
 RUN mv /var/lib/dpkg/info/libc-bin.* /tmp/
