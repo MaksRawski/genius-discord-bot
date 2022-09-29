@@ -17,14 +17,11 @@ stages:
     # https://github.com/rust-lang/cargo/issues/9167#issue-807444842
     - mkdir -p .cargo
     - echo -e "[net]\ngit-fetch-with-cli = true" > .cargo/config
-    - ls cargo -a
-    - ls cargo/registry -a
-    - du -sh cargo
 
     # copy CI's cache of cargo dependencies and apply below fix
     # after the first `apt-get update` when building the Dockerfile
     # https://github.com/microsoft/WSL/issues/4760#issuecomment-642715044
-    - sed -i -E 's?^.*apt-get update.*$?\0\nRUN if [ -e ./cargo ]; then mv ./cargo /usr/local/cargo; fi\n
+    - sed -i -E 's?^.*apt-get update.*$?\0\nRUN if [ -e ./cargo ]; then rm -rf /usr/local/cargo/; mv ./cargo /usr/local/cargo; fi\n
       RUN mv /var/lib/dpkg/info/libc-bin.* /tmp/ \&\&
       dpkg --remove --force-remove-reinstreq --force-remove-essential --force-depends libc-bin \&\&
       dpkg --purge libc-bin \&\&
