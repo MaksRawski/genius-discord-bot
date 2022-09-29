@@ -21,6 +21,9 @@ stages:
 
     - update-binfmts --enable
 
+    - mkdir -p .cargo
+    - echo -e "[net]\ngit-fetch-with-cli = true" > .cargo/config
+
   script:
     - ls
     - docker buildx build --platform linux/$CI_JOB_NAME
