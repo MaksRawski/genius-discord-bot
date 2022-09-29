@@ -2,10 +2,12 @@ FROM rust
 
 WORKDIR /genius
 COPY . .
-RUN apt-get update && apt-get install -y -f jq libjq-dev libonig5 libonig-dev openssl ca-certificates fonts-lato imagemagick
 
-ENV JQ_LIB_DIR=/usr/lib/libjq.so
+RUN apt-get update
+RUN apt-get install -y -f jq libjq-dev libonig5 libonig-dev openssl ca-certificates fonts-lato imagemagick
+
+# jq's lib sometimes isn't found
+ENV JQ_LIB_DIR=/usr/lib/x86_64-linux-gnu/libjq.so.1
 RUN cargo build --release
 
-# there is probably a better way of going about this
-CMD while :; do /genius/target/release/genius; sleep 10; done
+CMD cargo run --release
