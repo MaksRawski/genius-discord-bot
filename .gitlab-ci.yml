@@ -35,7 +35,7 @@ stages:
   script:
     - docker buildx build --platform linux/$PLATFORM
       -t genius:local -o type=docker,dest=- . | docker load
-    - docker run --platform linux/$PLATFORM --name genius genius:local
+    - docker create --platform linux/$PLATFORM --name genius genius:local
 
     - docker cp genius:/genius/target .
     - docker cp genius:/usr/local/cargo .
@@ -48,7 +48,6 @@ stages:
       - target/release/genius
 
   cache:
-    untracked: true
     key: $PLATFORM
     paths:
       - cargo
