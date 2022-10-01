@@ -60,7 +60,7 @@ stages:
     - if: $CI_COMMIT_TAG # Run this job when a tag is created
   script:
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "target/release/genius"
-      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/genius-binaries/$CI_COMMIT_TAG/genius-$CI_JOB_TOKEN-$PLATFORM"'
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/genius-$PLATFORM/$CI_COMMIT_TAG/genius"'
 
 # TODO make it less repetitive
 build-amd64:
