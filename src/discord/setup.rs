@@ -89,8 +89,7 @@ impl Discord {
             // .before(f)
             .group(&QUERY_GROUP)
             .group(&CARD_GROUP)
-            .help(&MY_HELP)
-            .unrecognised_command(unknown_command);
+            .help(&MY_HELP);
 
         let client = Client::builder(discord_token)
             .framework(framework)
