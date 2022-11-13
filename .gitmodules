@@ -1,0 +1,4 @@
+[submodule "magick-rust"]
+	path = magick-rust
+	url = https://github.com/MaksRawski/magick-rust
+	branch = my-changes
