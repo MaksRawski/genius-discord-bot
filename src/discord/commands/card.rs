@@ -26,7 +26,11 @@ async fn search_img(ctx: &Context, msg: &Message, args: &Args) -> Option<(String
 
 async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Option<String> {
     let (img, q) = search_img(ctx, msg, args).await?;
-    let card = generate_card(&img, &lyrics, &q.artist, &q.title)?;
+    if lyrics.len() > 400 {
+        send_message!(ctx, msg, "This lyric is too long!");
+        return None;
+    };
+    let card = generate_card(&img, &lyrics, &q.artist, &q.title).ok()?;
     std::fs::remove_file(img).unwrap();
 
     Some(card)
@@ -78,7 +82,11 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         send_message!(ctx, msg, "Time's up!");
         return Ok(());
     };
-    let card = generate_card(&img, &caption, &q.artist, &q.title).ok_or("")?;
+    if caption.len() > 400 {
+        send_message!(ctx, msg, "This caption is too long!");
+        return Ok(());
+    }
+    let card = generate_card(&img, &caption, &q.artist, &q.title)?;
     std::fs::remove_file(img).unwrap();
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
