@@ -88,9 +88,11 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     }
     let card = generate_card(&img, &caption, &q.artist, &q.title)?;
     std::fs::remove_file(img).unwrap();
+
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
         .await?;
 
+    std::fs::remove_file(card).unwrap();
     Ok(())
 }

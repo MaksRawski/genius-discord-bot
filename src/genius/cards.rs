@@ -7,29 +7,9 @@ use magick_rust::{DrawingWand, MagickError, MagickWand, PixelWand};
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use std::ops::Add;
-use std::process::Command;
-use tracing::error;
+use std::time::Instant;
+use tracing::info;
 
-/// returns filename of the output image
-/// img must exist and be valid, no checks are done!
-pub fn old_generate_card(img: &str, caption: &str, author: &str, track: &str) -> Option<String> {
-    let filename: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(30)
-        .map(char::from)
-        .collect::<String>()
-        .add(".jpg");
-
-    Command::new("./scripts/generate.sh")
-        .args([img, caption, author, track, &filename])
-        .status()
-        .map_err(|e| error!("Error in card generation: {}", e))
-        .ok()?;
-
-    Some(filename)
-}
-
-// TODO rewrite in https://crates.io/crates/andrew
 /// returns either path to a generated card
 /// or a MagickError describing why it failed
 /// expects quote to be shorter than 400 chars
@@ -39,6 +19,8 @@ pub fn generate_card(
     artist: &str,
     title: &str,
 ) -> Result<String, MagickError> {
+    let start = Instant::now();
+
     // 0. load the image
     let mut wand = MagickWand::new();
     let mut p_wand = PixelWand::new();
@@ -53,8 +35,8 @@ pub fn generate_card(
     wand.set_gravity(GravityType_CenterGravity)?;
 
     if width >= height {
-        wand.resize_image(900, height / width * 900, FilterType_LanczosFilter);
-        wand.extend_image(900, 600, 0, 160)?;
+        wand.resize_image(900, 900 / (width / height), FilterType_LanczosFilter);
+        wand.extend_image(900, 600, 0, 150)?;
     } else {
         wand.resize_image(width / height * 600, 600, FilterType_LanczosFilter);
         wand.extend_image(900, 600, 225, 0)?;
@@ -63,7 +45,7 @@ pub fn generate_card(
     wand.crop_image(900, 600, 0, 0)?;
 
     // 2. darken the image
-    wand.brightness_contrast_image(-15.0, -15.0)?;
+    wand.brightness_contrast_image(-20.0, -25.0)?;
 
     // 3. add author and title
     let mut d_wand = DrawingWand::new();
@@ -122,7 +104,8 @@ pub fn generate_card(
         bar_p_wand.set_color("black")?;
         bar_d_wand.set_font("Lato")?;
         bar_d_wand.set_font_family("Lato")?;
-        bar_d_wand.set_font_weight(500);
+        bar_d_wand.set_font_weight(400);
+        bar_d_wand.set_font_style(StyleType_NormalStyle);
         bar_d_wand.set_font_size(bar_font_size as f64);
         bar_d_wand.set_fill_color(&bar_p_wand);
         bar_d_wand.set_stroke_color(&bar_p_wand);
@@ -164,6 +147,15 @@ pub fn generate_card(
     )?;
 
     wand.draw_image(&d_wand)?;
-    wand.write_image(&format!("{}.png", artist))?;
-    Ok("asdf.png".to_owned())
+
+    let filename: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(30)
+        .map(char::from)
+        .collect::<String>()
+        .add(".jpg");
+
+    wand.write_image(&filename)?;
+    info!("It took {:.2?} to create a card.", start.elapsed());
+    Ok(filename)
 }
