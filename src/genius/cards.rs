@@ -10,6 +10,8 @@ use std::ops::Add;
 use std::time::Instant;
 use tracing::info;
 
+const QUOTE_SYMBOL: &[u8] = include_bytes!("../../scripts/quote.png");
+
 /// returns either path to a generated card
 /// or a MagickError describing why it failed
 /// expects quote to be shorter than 400 chars
@@ -62,12 +64,22 @@ pub fn generate_card(
 
     wand.set_gravity(GravityType_SouthWestGravity)?;
 
-    let card_info = format!("{} \"{}\"", artist.to_uppercase(), title.to_uppercase());
+    let mut title_up = title.to_uppercase();
+    let mut artist_up = artist.to_uppercase();
+
+    if title_up.len() > 34 {
+        title_up.truncate(34);
+        title_up = title_up.add("...");
+    }
+    if artist_up.len() > 34 {
+        artist_up.truncate(34);
+        artist_up = artist_up.add("...");
+    }
+    let card_info = format!("{} \"{}\"", artist_up, title_up);
 
     if card_info.len() > 30 {
-        d_wand.draw_annotation(90.0, 75.0, &artist.to_uppercase())?;
-        // TODO add dots if the title itself is above 30 chars
-        d_wand.draw_annotation(90.0, 40.0, &format!("\"{}\"", &title.to_uppercase()))?;
+        d_wand.draw_annotation(90.0, 75.0, &artist_up)?;
+        d_wand.draw_annotation(90.0, 40.0, &format!("\"{}\"", &title_up))?;
     } else {
         d_wand.draw_annotation(90.0, 52.0, &card_info)?;
     }
@@ -134,8 +146,7 @@ pub fn generate_card(
 
     // 5. add quote symbol to first bar
     let quote_symbol = MagickWand::new();
-    quote_symbol.read_image("scripts/quote.png")?;
-    quote_symbol.resize_image(42, 32, FilterType_LanczosFilter);
+    quote_symbol.read_image_blob(QUOTE_SYMBOL)?;
 
     let top_bar = last_bar_y - (bars.len() - 1) as isize * bar_gap as isize;
     wand.compose_images(
