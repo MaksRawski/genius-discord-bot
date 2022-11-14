@@ -1,28 +1,31 @@
 # Discord Genius Bot
 Discord bot to create genius-like cards + some other genius related utilities.
 
+Since version 0.2 this project is using ImageMagick 7.1 which isn't yet available on debian based systems.
+Very hacky solution can be found in the `Dockerfile` and it is a recommended way to use this project right now.
+
 # Usage
-Pre-built binaries are available to download from the releases page.
-To use them you will need to provide them `.env` (with your `DISCORD_TOKEN` and `GENIUS_TOKEN`).
-Also make sure that you have: `genius` (binary), `.env` and `scripts/` all in the same folder.
-
-# Building
-
-## Locally to current arch
+First build the project itself:
 ```
 docker build -t genius-bot .
 ```
 
-## To different one e.g. ARM (which is my main target)
-I find buildx to work best, more in-depth build process can be found in `.gitlab-ci.yml`.
-
-
-1. Create a builder for desired architecture:
+Then put your `.env` (containing `DISCORD_TOKEN` and `GENIUS_TOKEN`) into a new container:
 ```
-docker buildx create --driver docker-container --platform linux/arm64 --use
+docker create --name genius genius-bot
+docker cp .env genius:/genius/.env
 ```
 
-2. Start the build:
+And finally run with:
 ```
-docker buildx build --pull --platform linux/arm64 .
+docker start genius
 ```
+
+## Logs
+Logs can be previewed with:
+```
+docker logs genius
+```
+
+[Sentry](https://sentry.io) support is planned which will enable more thorough logging and notifying 
+about errors or whatnot.
