@@ -25,21 +25,22 @@ async fn get_thumbnail(ctx: &Context, msg: &Message, args: &Args) -> Option<Stri
 
 #[command]
 #[aliases(i)]
-#[description("Query a song's thumbnail image")]
+#[description("Query a song's thumbnail image.")]
 async fn img(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let img = get_thumbnail(ctx, msg, &args)
-        .await
-        .ok_or("Failed to get Thumbnail")?;
-
-    msg.channel_id
-        .send_files(ctx, vec![&img[..]], |m| m.content(""))
-        .await?;
+    if let Some(img) = get_thumbnail(ctx, msg, &args).await {
+        msg.channel_id
+            .send_files(ctx, vec![&img[..]], |m| m.content(""))
+            .await?;
+    } else {
+        send_error!(ctx, msg, "Failed to get the thumbnail!");
+    }
 
     Ok(())
 }
 
 #[command]
 #[aliases(l)]
+#[description("Returns song's lyrics.")]
 async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     tracing::info!(
         "User: {:?} asked for lyrics of {:?}",

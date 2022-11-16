@@ -36,16 +36,13 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 options.push_str(&format!("{}. - **{}**\n", r.0 + 1, r.1));
             }
 
-            let options_msg = msg
-                .channel_id
-                .say(
-                    ctx,
-                    format!(
-                        "Multiple results were found, please choose one:\n{}",
-                        options
-                    ),
-                )
-                .await;
+            let options_msg = send_message!(
+                ctx,
+                msg,
+                "Multiple results were found, please choose one:\n{}",
+                options
+            );
+            let c = send_message!(ctx, msg, "Send **c** to **CANCEL**");
 
             if let Some(answer) = &msg
                 .author
@@ -53,11 +50,15 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 .timeout(Duration::from_secs(60))
                 .await
             {
-                options_msg.unwrap().delete(ctx).await.unwrap();
+                options_msg.delete(ctx).await.unwrap();
+                c.delete(ctx).await.unwrap();
+
                 let index = if let Ok(v) = answer.content.parse::<usize>() {
                     v.max(1) - 1
                 } else {
-                    send_message!(ctx, msg, "That's not a valid number!");
+                    if answer.content != "c" {
+                        send_message!(ctx, msg, "That's not a valid number!");
+                    }
                     return None;
                 };
 

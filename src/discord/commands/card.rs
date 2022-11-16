@@ -1,7 +1,7 @@
 use super::utils::query_song;
 use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, SongQuery};
-use crate::send_message;
+use crate::{send_error, send_message};
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::http::Typing;
 use serenity::model::prelude::Message;
@@ -27,7 +27,7 @@ async fn search_img(ctx: &Context, msg: &Message, args: &Args) -> Option<(String
 async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Option<String> {
     let (img, q) = search_img(ctx, msg, args).await?;
     if lyrics.len() > 400 {
-        send_message!(ctx, msg, "This lyric is too long!");
+        send_error!(ctx, msg, "This lyric is too long!");
         return None;
     };
     let card = generate_card(&img, &lyrics, &q.artist, &q.title).ok()?;
@@ -38,7 +38,7 @@ async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Optio
 
 #[command]
 #[aliases(c)]
-#[description("Create a lyric card containing a given quote")]
+#[description("Create a lyric card containing a given quote.")]
 async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     tracing::info!(
         "User \"{}#{}\" is creating a card.",
@@ -61,7 +61,7 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[aliases(cc)]
-#[description("Create a lyric card with a custom quote")]
+#[description("Create a lyric card with a custom quote.")]
 async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     tracing::info!(
         "User \"{}#{}\" is creating a custom card.",
@@ -83,7 +83,7 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         return Ok(());
     };
     if caption.len() > 400 {
-        send_message!(ctx, msg, "This caption is too long!");
+        send_error!(ctx, msg, "This caption is too long!");
         return Ok(());
     }
     let card = generate_card(&img, &caption, &q.artist, &q.title)?;

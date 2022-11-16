@@ -67,17 +67,17 @@ pub fn generate_card(
     let mut title_up = title.to_uppercase();
     let mut artist_up = artist.to_uppercase();
 
+    // it's safe to unwrap (take first element of the result) since
+    // we know that the length will be over 34 so the result can't be empty
     if title_up.len() > 34 {
-        title_up.truncate(34);
-        title_up = title_up.add("...");
+        title_up = textwrap::wrap(&title_up, 34)[0].to_string().add("...");
     }
     if artist_up.len() > 34 {
-        artist_up.truncate(34);
-        artist_up = artist_up.add("...");
+        artist_up = textwrap::wrap(&artist_up, 34)[0].to_string().add("...");
     }
     let card_info = format!("{} \"{}\"", artist_up, title_up);
 
-    if card_info.len() > 30 {
+    if card_info.len() > 40 {
         d_wand.draw_annotation(90.0, 75.0, &artist_up)?;
         d_wand.draw_annotation(90.0, 40.0, &format!("\"{}\"", &title_up))?;
     } else {
@@ -91,9 +91,8 @@ pub fn generate_card(
     let mut last_bar_y = 405;
     let mut bar_w_pad = 10;
 
-    // // for quotes longer than 120 chars, wrap at 50
     if quote.len() > 120 {
-        bars = textwrap::wrap(quote, 48);
+        bars = textwrap::wrap(quote, 46);
         bar_height = 46;
         bar_gap = bar_height + 12;
         bar_font_size = 32;
