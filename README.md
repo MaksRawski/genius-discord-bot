@@ -27,5 +27,9 @@ Logs can be previewed with:
 docker logs genius
 ```
 
-[Sentry](https://sentry.io) support is planned which will enable more thorough logging and notifying 
-about errors or whatnot.
+# TODO
+- [ ] properly center text in bars:
+`load_image("label:...")`
+
+- [ ] use album/artist covers for the image background
+

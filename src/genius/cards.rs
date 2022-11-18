@@ -3,7 +3,7 @@ use magick_rust::bindings::{
     FilterType_LanczosFilter, GravityType_CenterGravity, GravityType_SouthWestGravity,
     MagickBooleanType_MagickTrue, StyleType_NormalStyle,
 };
-use magick_rust::{DrawingWand, MagickError, MagickWand, PixelWand};
+use magick_rust::{DrawingWand, MagickWand, PixelWand};
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use std::ops::Add;
@@ -20,7 +20,7 @@ pub fn generate_card(
     quote: &str,
     artist: &str,
     title: &str,
-) -> Result<String, MagickError> {
+) -> Result<String, anyhow::Error> {
     let start = Instant::now();
 
     // 0. load the image
@@ -77,13 +77,6 @@ pub fn generate_card(
     }
     let card_info = format!("{} \"{}\"", artist_up, title_up);
 
-    if card_info.len() > 40 {
-        d_wand.draw_annotation(90.0, 75.0, &artist_up)?;
-        d_wand.draw_annotation(90.0, 40.0, &format!("\"{}\"", &title_up))?;
-    } else {
-        d_wand.draw_annotation(90.0, 52.0, &card_info)?;
-    }
-
     let mut bars = textwrap::wrap(quote, 30);
     let mut bar_height = 68;
     let mut bar_gap = bar_height + 22;
@@ -101,10 +94,22 @@ pub fn generate_card(
         last_bar_y = 425;
     }
 
+    if card_info.len() > 40 {
+        d_wand.draw_annotation(90.0, 70.0, &artist_up)?;
+        d_wand.draw_annotation(90.0, 32.0, &format!("\"{}\"", &title_up))?;
+        // last_bar_y -= 10;
+    } else {
+        d_wand.draw_annotation(90.0, 52.0, &card_info)?;
+    }
+
     // 4. create bars
     let mut bar_p_wand = PixelWand::new();
-    // each iteration takes about 30ms
-    // can something be done about it? i don't know :/
+
+    // Ideally we would want to not create new wands for each bar.
+    // As composing (or drawing or whatnot) seems to be quite expensive
+    // therefore doing that in a loop slows this function quite a bit.
+    // Either way right now the worst case scenario is about 0.5s which is
+    // more or less _okay_
     for (i, bar) in bars.iter().enumerate() {
         let mut bar_wand = MagickWand::new();
         let mut bar_d_wand = DrawingWand::new();

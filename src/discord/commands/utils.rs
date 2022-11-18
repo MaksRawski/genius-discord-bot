@@ -6,13 +6,28 @@ use crate::{
 };
 use serenity::{framework::standard::Args, model::prelude::*, prelude::*};
 
-pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<SongQuery> {
+pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> Option<SongQuery> {
     let arg = args.message();
+    let mut m = msg.content.to_owned();
+
+    // m will now have the command name itself, without the prefix
+    m.remove(0);
+
+    if arg.len() == 0 {
+        send_message!(
+            ctx,
+            msg,
+            "Send **~help {}** to see the usage of this command.",
+            m
+        );
+        return None;
+    }
     if arg.len() < 2 {
         send_error!(ctx, msg, "Query '{}' is too short!", arg);
         return None;
     } else if textwrap::wrap(&arg, 46).len() > 8 {
-        send_error!(ctx, msg, "This caption is too long!");
+        send_error!(ctx, msg, "This query is too long!");
+        return None;
     }
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
@@ -52,9 +67,6 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 .timeout(Duration::from_secs(60))
                 .await
             {
-                c.delete(ctx).await.unwrap();
-                options_msg.delete(ctx).await.unwrap();
-
                 let index = if let Ok(v) = answer.content.parse::<usize>() {
                     v.max(1) - 1
                 } else {
@@ -67,6 +79,8 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 if let Some(v) = results.get(index) {
                     let v = v.clone();
                     send_message!(ctx, msg, "You've chosen: **{}**", v);
+                    c.delete(ctx).await.unwrap();
+                    options_msg.delete(ctx).await.unwrap();
                     Some(v)
                 } else {
                     send_message!(ctx, msg, "There is no result with that number.");

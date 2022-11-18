@@ -12,11 +12,17 @@ use std::io::Cursor;
 use std::sync::Arc;
 use tracing::error;
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct SongQuery {
     pub artist: String,
     pub title: String,
     pub id: u32,
+}
+
+impl fmt::Display for SongQuery {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} - {}", self.artist, self.title)
+    }
 }
 
 pub struct GeniusApi {
@@ -30,12 +36,9 @@ impl TypeMapKey for GeniusApiWrapper {
     type Value = Arc<GeniusApi>;
 }
 
-impl fmt::Display for SongQuery {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} - {}", self.artist, self.title)
-    }
-}
-
+// errors from these functions shouldn't be visible to the user
+// therefore there are just logged and None will be returned
+// if anything fails
 impl GeniusApi {
     pub fn new(genius_token: &str) -> Self {
         Self {
@@ -82,7 +85,7 @@ impl GeniusApi {
     }
 
     /// for a given song_id tries to find a value which matches provided jq query
-    pub async fn jq_song_info(&self, song_id: u32, jq: &str) -> Option<String> {
+    async fn jq_song_info(&self, song_id: u32, jq: &str) -> Option<String> {
         let raw_data = self.query_api(&format!("songs/{}", song_id), "").await?;
 
         let mut jq = jq_rs::compile(&format!("{}{}", ".response |", jq)).map_err(|_| {
@@ -138,10 +141,13 @@ impl GeniusApi {
         Some(filename)
     }
 
+    pub async fn get_song_url(&self, song_id: u32) -> Option<String> {
+        self.jq_song_info(song_id, ".song.url").await
+    }
+
     /// returns formatted lyrics (without annotations)
-    pub async fn lyrics(&self, song_id: u32) -> Option<String> {
-        let song_url = self.jq_song_info(song_id, ".song.url").await?;
-        let document = self.safe_get(self.client.get(song_url)).await?;
+    pub async fn lyrics(&self, url: &str) -> Option<String> {
+        let document = self.safe_get(self.client.get(url)).await?;
 
         let html = Html::parse_document(&document);
         let selector = Selector::parse("div[data-lyrics-container='true']").unwrap();

@@ -42,7 +42,7 @@ async fn my_help(
 
     help_options.strikethrough_commands_tip_in_guild = None;
     help_options.strikethrough_commands_tip_in_dm = None;
-    help_options.max_levenshtein_distance = 2;
+    help_options.max_levenshtein_distance = 1;
     help_options.description_label =
         "To get help with an individual command, pass its name as an argument to this command.";
 
