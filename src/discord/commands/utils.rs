@@ -11,6 +11,8 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
     if arg.len() < 2 {
         send_error!(ctx, msg, "Query '{}' is too short!", arg);
         return None;
+    } else if textwrap::wrap(&arg, 46).len() > 8 {
+        send_error!(ctx, msg, "This caption is too long!");
     }
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
@@ -50,8 +52,8 @@ pub async fn query_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Son
                 .timeout(Duration::from_secs(60))
                 .await
             {
-                options_msg.delete(ctx).await.unwrap();
                 c.delete(ctx).await.unwrap();
+                options_msg.delete(ctx).await.unwrap();
 
                 let index = if let Ok(v) = answer.content.parse::<usize>() {
                     v.max(1) - 1

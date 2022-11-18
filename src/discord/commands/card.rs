@@ -26,7 +26,7 @@ async fn search_img(ctx: &Context, msg: &Message, args: &Args) -> Option<(String
 
 async fn quote(ctx: &Context, msg: &Message, args: &Args, lyrics: &str) -> Option<String> {
     let (img, q) = search_img(ctx, msg, args).await?;
-    if lyrics.len() > 400 {
+    if textwrap::wrap(&lyrics, 46).len() > 8 {
         send_error!(ctx, msg, "This lyric is too long!");
         return None;
     };
@@ -82,10 +82,6 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         send_message!(ctx, msg, "Time's up!");
         return Ok(());
     };
-    if caption.len() > 400 {
-        send_error!(ctx, msg, "This caption is too long!");
-        return Ok(());
-    }
     let card = generate_card(&img, &caption, &q.artist, &q.title)?;
     std::fs::remove_file(img).unwrap();
 

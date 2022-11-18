@@ -91,7 +91,7 @@ pub fn generate_card(
     let mut last_bar_y = 405;
     let mut bar_w_pad = 10;
 
-    if quote.len() > 120 {
+    if bars.len() > 4 {
         bars = textwrap::wrap(quote, 46);
         bar_height = 46;
         bar_gap = bar_height + 12;
