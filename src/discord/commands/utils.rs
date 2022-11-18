@@ -53,13 +53,13 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
                 options.push_str(&format!("{}. - **{}**\n", r.0 + 1, r.1));
             }
 
-            let options_msg = send_message!(
+            send_message!(
                 ctx,
                 msg,
                 "Multiple results were found, please choose one:\n{}",
                 options
             );
-            let c = send_message!(ctx, msg, "Send **c** to **CANCEL**");
+            send_message!(ctx, msg, "Send **c** to **CANCEL**");
 
             if let Some(answer) = &msg
                 .author
@@ -79,8 +79,6 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
                 if let Some(v) = results.get(index) {
                     let v = v.clone();
                     send_message!(ctx, msg, "You've chosen: **{}**", v);
-                    c.delete(ctx).await.unwrap();
-                    options_msg.delete(ctx).await.unwrap();
                     Some(v)
                 } else {
                     send_message!(ctx, msg, "There is no result with that number.");

@@ -1,7 +1,7 @@
 use magick_rust::bindings::{
     CompositeOperator_BlendCompositeOp, CompositeOperator_SrcOverCompositeOp,
     FilterType_LanczosFilter, GravityType_CenterGravity, GravityType_SouthWestGravity,
-    MagickBooleanType_MagickTrue, StyleType_NormalStyle,
+    StyleType_NormalStyle,
 };
 use magick_rust::{DrawingWand, MagickWand, PixelWand};
 use rand::distributions::Alphanumeric;
@@ -78,19 +78,16 @@ pub fn generate_card(
     let card_info = format!("{} \"{}\"", artist_up, title_up);
 
     let mut bars = textwrap::wrap(quote, 30);
-    let mut bar_height = 68;
-    let mut bar_gap = bar_height + 22;
-    let mut bar_font_size = 50;
+    let mut bar_font_size = 52;
+    let mut bar_gap = 90;
     let mut last_bar_y = 405;
-    let mut bar_w_pad = 10;
+    let bar_w_pad = 5;
 
     if bars.len() > 4 {
         bars = textwrap::wrap(quote, 46);
-        bar_height = 46;
-        bar_gap = bar_height + 12;
-        bar_font_size = 32;
+        bar_font_size = 35;
+        bar_gap = 62;
 
-        bar_w_pad = 5;
         last_bar_y = 425;
     }
 
@@ -103,41 +100,13 @@ pub fn generate_card(
     }
 
     // 4. create bars
-    let mut bar_p_wand = PixelWand::new();
-
-    // Ideally we would want to not create new wands for each bar.
-    // As composing (or drawing or whatnot) seems to be quite expensive
-    // therefore doing that in a loop slows this function quite a bit.
-    // Either way right now the worst case scenario is about 0.5s which is
-    // more or less _okay_
     for (i, bar) in bars.iter().enumerate() {
         let mut bar_wand = MagickWand::new();
-        let mut bar_d_wand = DrawingWand::new();
 
-        bar_p_wand.set_color("white")?;
-        bar_wand.new_image(800, 200, &bar_p_wand).unwrap();
-
-        bar_p_wand.set_color("black")?;
-        bar_d_wand.set_font("Lato")?;
-        bar_d_wand.set_font_family("Lato")?;
-        bar_d_wand.set_font_weight(400);
-        bar_d_wand.set_font_style(StyleType_NormalStyle);
-        bar_d_wand.set_font_size(bar_font_size as f64);
-        bar_d_wand.set_fill_color(&bar_p_wand);
-        bar_d_wand.set_stroke_color(&bar_p_wand);
-        bar_d_wand.set_text_kerning(2.0);
-        bar_d_wand.set_text_antialias(MagickBooleanType_MagickTrue);
-
-        bar_d_wand.draw_annotation(5.0, 100.0, &bar)?;
-        bar_wand.draw_image(&bar_d_wand)?;
-
-        bar_wand.trim_image(0.0)?;
-        bar_wand.extend_image(
-            bar_wand.get_image_width() + bar_w_pad * 2,
-            bar_height as usize,
-            -(bar_w_pad as isize),
-            -bar_height / 4,
-        )?;
+        bar_wand.set_font("Lato-bold")?;
+        bar_wand.set_pointsize(bar_font_size as f64)?;
+        bar_wand.read_image(&format!("label:{}", bar))?;
+        bar_wand.border_image(&p_wand, bar_w_pad, 1, CompositeOperator_SrcOverCompositeOp)?;
 
         wand.compose_images(
             &bar_wand,
@@ -157,7 +126,7 @@ pub fn generate_card(
         &quote_symbol,
         CompositeOperator_BlendCompositeOp,
         true,
-        25,
+        30,
         top_bar,
     )?;
 
@@ -171,6 +140,6 @@ pub fn generate_card(
         .add(".jpg");
 
     wand.write_image(&filename)?;
-    info!("It took {:.2?} to create a card.", start.elapsed());
+    info!("It took {:.2?} to create the card.", start.elapsed());
     Ok(filename)
 }
