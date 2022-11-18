@@ -26,10 +26,3 @@ Logs can be previewed with:
 ```
 docker logs genius
 ```
-
-# TODO
-- [ ] properly center text in bars:
-`load_image("label:...")`
-
-- [ ] use album/artist covers for the image background
-
