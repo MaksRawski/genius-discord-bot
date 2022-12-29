@@ -6,7 +6,7 @@ use tracing_subscriber::{filter, fmt, prelude::*, Registry};
 
 static START_MAGICK: Once = Once::new();
 
-// ridicolously good and simple example of how to setup tracing_subscriber
+// ridiculously good and simple example of how to setup tracing_subscriber
 // https://stackoverflow.com/a/70042590
 #[tokio::main]
 async fn main() {
