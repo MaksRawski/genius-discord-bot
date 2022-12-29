@@ -103,10 +103,12 @@ pub fn generate_card(
     for (i, bar) in bars.iter().enumerate() {
         let mut bar_wand = MagickWand::new();
 
-        bar_wand.set_font("Lato-bold")?;
+        bar_wand.set_font("Lato-SemiBold")?;
         bar_wand.set_pointsize(bar_font_size as f64)?;
         bar_wand.read_image(&format!("label:{}", bar))?;
-        bar_wand.border_image(&p_wand, bar_w_pad, 1, CompositeOperator_SrcOverCompositeOp)?;
+        // when running locally (at least on my machine) it looks fine with just border of 1px in height
+        // however when running through docker, there seems to be pretty much no border and 7 seems do the trick
+        bar_wand.border_image(&p_wand, bar_w_pad, 7, CompositeOperator_SrcOverCompositeOp)?;
 
         wand.compose_images(
             &bar_wand,
