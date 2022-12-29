@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "1.0.66"
 dotenv = "0.15.0"
 jq-rs = "0.4.1"
-magick_rust = {path = "magick-rust"}
+magick_rust = "0.17.0"
 rand = "0.8.0"
 regex = "1.5.4"
 reqwest = "0.11"
