@@ -3,7 +3,6 @@ use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, SongQuery};
 use crate::{send_error, send_message};
 use serenity::framework::standard::{macros::*, Args, CommandResult};
-use serenity::http::Typing;
 use serenity::model::prelude::Message;
 use serenity::prelude::*;
 use std::time::Duration;
@@ -58,14 +57,12 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         msg.author.name,
         msg.author.id
     );
-    let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
     let card = get_quote_from_user(ctx, msg, &args, args.message())
         .await
         .ok_or("")?;
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
         .await?;
-    typing.stop();
 
     std::fs::remove_file(card).unwrap();
     Ok(())
@@ -85,11 +82,10 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         msg.author.name,
         msg.author.id
     );
-    send_message!(ctx, msg, "What should the caption be?");
-
     let q = ask_user_for_a_song(ctx, msg, &args).await.ok_or("")?;
 
     if let Some(img) = search_img(ctx, &q).await {
+        send_message!(ctx, msg, "What should the caption be?");
         let caption = if let Some(answer) = &msg
             .author
             .await_reply(ctx)
