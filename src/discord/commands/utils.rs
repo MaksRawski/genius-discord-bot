@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use crate::{
-    genius::{GeniusApiWrapper, SongQuery},
+    genius::{GeniusApiWrapper, Song},
     send_error, send_message,
 };
 use serenity::{framework::standard::Args, model::prelude::*, prelude::*};
 
-pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> Option<SongQuery> {
+pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> Option<Song> {
     let arg = args.message();
     let mut m = msg.content.to_owned();
 
@@ -34,7 +34,7 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
 
     send_message!(ctx, msg, "Searching genius for: **{}**\n", arg);
 
-    let results: Vec<SongQuery> = genius_api.search_song(arg).await?;
+    let results: Vec<Song> = genius_api.search_for_song(arg).await?;
 
     match results.len() {
         0 => {

@@ -1,6 +1,6 @@
 use super::utils::ask_user_for_a_song;
 use crate::genius::cards::generate_card;
-use crate::genius::{GeniusApiWrapper, SongQuery};
+use crate::genius::{GeniusApiWrapper, Song};
 use crate::{send_error, send_message};
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::model::prelude::Message;
@@ -11,7 +11,8 @@ use std::time::Duration;
 #[commands(card, custom_card)]
 pub struct Card;
 
-async fn search_img(ctx: &Context, q: &SongQuery) -> Option<String> {
+/// returns a path to a downloaded image or None if an error occured
+async fn search_img(ctx: &Context, q: &Song) -> Option<String> {
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 

@@ -13,13 +13,13 @@ use std::sync::Arc;
 use tracing::error;
 
 #[derive(Clone, Deserialize)]
-pub struct SongQuery {
+pub struct Song {
     pub artist: String,
     pub title: String,
     pub id: u32,
 }
 
-impl fmt::Display for SongQuery {
+impl fmt::Display for Song {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} - {}", self.artist, self.title)
     }
@@ -69,7 +69,7 @@ impl GeniusApi {
         self.safe_get(request).await
     }
 
-    fn parse_query(data: &str) -> Option<Vec<SongQuery>> {
+    fn parse_query(data: &str) -> Option<Vec<Song>> {
         let mut jq_query = jq_rs::compile("[.response.hits[] | .result | { artist: .primary_artist.name, title: .title, id: .id }]").unwrap();
         let jq_out = jq_query.run(data).map_err(|v| v.to_string()).ok()?;
 
@@ -78,7 +78,8 @@ impl GeniusApi {
             .ok()
     }
 
-    pub async fn search_song(&self, query: &str) -> Option<Vec<SongQuery>> {
+    /// returns a vector of upto 10 matching songs or None if an error occured
+    pub async fn search_for_song(&self, query: &str) -> Option<Vec<Song>> {
         let raw_data = self.query_api("search", query).await?;
 
         GeniusApi::parse_query(&raw_data)
