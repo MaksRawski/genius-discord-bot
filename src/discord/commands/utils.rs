@@ -49,8 +49,8 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
         _ => {
             let mut options: String = String::new();
 
-            for r in results.iter().enumerate() {
-                options.push_str(&format!("{}. - **{}**\n", r.0 + 1, r.1));
+            for (i, r) in results.iter().enumerate() {
+                options.push_str(&format!("{}. **{}**\n", i + 1, r));
             }
 
             send_message!(
