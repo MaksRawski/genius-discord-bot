@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::time::Duration;
 
 use crate::{
@@ -59,7 +60,6 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
                 "Multiple results were found, please choose one:\n{}",
                 options
             );
-            send_message!(ctx, msg, "Send **c** to **CANCEL**");
 
             if let Some(answer) = &msg
                 .author
@@ -67,21 +67,30 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
                 .timeout(Duration::from_secs(60))
                 .await
             {
-                let index = if let Ok(v) = answer.content.parse::<usize>() {
-                    v.max(1) - 1
-                } else {
-                    if answer.content != "c" {
-                        send_message!(ctx, msg, "That's not a valid number!");
+                // ideally we would create this regex somewhere else just once
+                // instead of recreating it here every time
+                let re = Regex::new(r"[0-9][0-9]?").unwrap();
+                let choice = match re.find(&answer.content) {
+                    Some(m) => match m.as_str().parse::<usize>() {
+                        Ok(v) => v,
+                        Err(_) => {
+                            // NOTE: we should never be here but there is no need to panic!
+                            send_message!(ctx, msg, "That's not a number!");
+                            return None;
+                        }
+                    },
+                    None => {
+                        send_message!(ctx, msg, "That's not a number!");
+                        return None;
                     }
-                    return None;
                 };
 
-                if let Some(v) = results.get(index) {
+                if let Some(v) = results.get(choice - 1) {
                     let v = v.clone();
                     send_message!(ctx, msg, "You've chosen: **{}**", v);
                     Some(v)
                 } else {
-                    send_message!(ctx, msg, "There is no result with that number.");
+                    send_message!(ctx, msg, "There is no result with that number!");
                     None
                 }
             } else {
