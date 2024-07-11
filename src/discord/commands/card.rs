@@ -2,6 +2,7 @@ use super::utils::ask_user_for_a_song;
 use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, Song};
 use crate::{send_error, send_message};
+use regex::Regex;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::model::prelude::Message;
 use serenity::prelude::*;
@@ -31,16 +32,21 @@ async fn get_quote_from_user(
     let q = ask_user_for_a_song(ctx, msg, args).await?;
     let img = search_img(ctx, &q).await?;
 
+    let remove_keywords = Regex::new(r"\[.*\]").unwrap();
+    let lyrics = remove_keywords.replace_all(lyrics, "");
     if textwrap::wrap(&lyrics, 46).len() > 8 {
         send_error!(ctx, msg, "This lyric is too long!");
         return None;
     };
-    if let Ok(card) = generate_card(&img, &lyrics, &q.artist, &q.title) {
-        std::fs::remove_file(img).unwrap();
-        return Some(card);
-    } else {
-        send_error!(ctx, msg, "Failed to generate the card!");
-        return None;
+    match generate_card(&img, &lyrics, &q.artist, &q.title) {
+        Ok(card) => {
+            std::fs::remove_file(img).unwrap();
+            return Some(card);
+        }
+        Err(e) => {
+            send_error!(ctx, msg, "Failed to generate the card! {e}");
+            return None;
+        }
     }
 }
 
@@ -49,7 +55,9 @@ async fn get_quote_from_user(
 #[description(
     "Create a lyric card containing a given quote.
 
-Quote should be given as an argument to this command.
+Quote should be given as an argument to this command. You can add keywords
+to your query by putting them in [square brackets]. This way you can create
+a card with a common quote but from a specific artist.
 "
 )]
 async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
@@ -107,7 +115,7 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 
         std::fs::remove_file(card).unwrap();
     } else {
-        send_error!(ctx, msg, "Failed to find an image for this song");
+        send_error!(ctx, msg, "Failed to find an image for this song!");
     }
     Ok(())
 }

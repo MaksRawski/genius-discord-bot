@@ -537,7 +537,7 @@ dependencies = [
 
 [[package]]
 name = "genius"
-version = "0.2.1"
+version = "0.2.4"
 dependencies = [
  "anyhow",
  "dotenv",
