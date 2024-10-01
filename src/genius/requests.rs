@@ -10,6 +10,7 @@ use serenity::prelude::TypeMapKey;
 use std::fmt;
 use std::io::Cursor;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::error;
 
 #[derive(Clone, Deserialize)]
@@ -42,7 +43,10 @@ impl TypeMapKey for GeniusApiWrapper {
 impl GeniusApi {
     pub fn new(genius_token: &str) -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::ClientBuilder::new()
+                .timeout(Duration::new(10, 0))
+                .build()
+                .expect("Failed to build client"),
             genius_token: genius_token.to_string(),
         }
     }
