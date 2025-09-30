@@ -18,8 +18,7 @@ async fn search_img(ctx: &Context, q: &Song) -> Option<DynamicImage> {
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
-    let img_url = genius_api.img(q.id).await?;
-    let img = genius_api.download_img(&img_url).await?;
+    let img = genius_api.get_cover(q.id).await.ok()?;
 
     Some(img)
 }

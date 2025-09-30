@@ -35,7 +35,7 @@ pub async fn ask_user_for_a_song(ctx: &Context, msg: &Message, args: &Args) -> O
 
     send_message!(ctx, msg, "Searching genius for: **{}**\n", arg);
 
-    let results: Vec<Song> = genius_api.search_for_song(arg).await?;
+    let results: Vec<Song> = genius_api.search_for_song(arg).await.ok()?;
 
     match results.len() {
         0 => {
