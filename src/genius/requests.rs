@@ -1,6 +1,5 @@
+use image::DynamicImage;
 use jq_rs;
-use rand::distributions::Alphanumeric;
-use rand::prelude::*;
 use regex::Regex;
 use reqwest::{self, RequestBuilder};
 use scraper::{Html, Selector};
@@ -8,7 +7,6 @@ use serde::Deserialize;
 use serde_json;
 use serenity::prelude::TypeMapKey;
 use std::fmt;
-use std::io::Cursor;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::error;
@@ -117,33 +115,20 @@ impl GeniusApi {
     }
 
     /// returns a path to downloaded img
-    pub async fn download_img(&self, img_url: &str) -> Option<String> {
-        let resp = self
+    pub async fn download_img(&self, img_url: &str) -> Option<DynamicImage> {
+        let img_data = self
             .client
             .get(img_url)
             .send()
             .await
             .map_err(|e| error!("{}", e))
+            .ok()?
+            .bytes()
+            .await
             .ok()?;
+        let image = image::load_from_memory(&img_data).ok()?;
 
-        let filename: String = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(30)
-            .map(char::from)
-            .collect();
-
-        let mut file = std::fs::File::create(&filename)
-            .map_err(|e| error!("Failed to create a new file: {}", e))
-            .ok()?;
-        let mut img_data = Cursor::new(
-            resp.bytes()
-                .await
-                .map_err(|_| error!("Empty response"))
-                .ok()?,
-        );
-        std::io::copy(&mut img_data, &mut file).unwrap();
-
-        Some(filename)
+        Some(image)
     }
 
     pub async fn get_song_url(&self, song_id: u32) -> Option<String> {

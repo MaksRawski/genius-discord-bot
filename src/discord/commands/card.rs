@@ -2,6 +2,7 @@ use super::utils::ask_user_for_a_song;
 use crate::genius::cards::generate_card;
 use crate::genius::{GeniusApiWrapper, Song};
 use crate::{send_error, send_message};
+use image::DynamicImage;
 use regex::Regex;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::model::prelude::Message;
@@ -13,7 +14,7 @@ use std::time::Duration;
 pub struct Card;
 
 /// returns a path to a downloaded image or None if an error occured
-async fn search_img(ctx: &Context, q: &Song) -> Option<String> {
+async fn search_img(ctx: &Context, q: &Song) -> Option<DynamicImage> {
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
@@ -38,13 +39,12 @@ async fn get_quote_from_user(
         send_error!(ctx, msg, "This lyric is too long!");
         return None;
     };
-    match generate_card(&img, &lyrics, &q.artist, &q.title) {
+    match generate_card(img, &lyrics, &q.artist, &q.title) {
         Ok(card) => {
-            std::fs::remove_file(img).unwrap();
             return Some(card);
         }
         Err(e) => {
-            send_error!(ctx, msg, "Failed to generate the card! {e}");
+            send_error!(ctx, msg, "Failed to generate the card! {}", e);
             return None;
         }
     }
@@ -106,8 +106,7 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
             send_message!(ctx, msg, "Time's up!");
             return Ok(());
         };
-        let card = generate_card(&img, &caption, &q.artist, &q.title)?;
-        std::fs::remove_file(img).unwrap();
+        let card = generate_card(img, &caption, &q.artist, &q.title)?;
 
         msg.channel_id
             .send_files(ctx, vec![&card[..]], |m| m.content(""))

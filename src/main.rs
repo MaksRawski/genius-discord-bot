@@ -1,10 +1,7 @@
 use dotenv::dotenv;
 use genius::discord::Discord;
-use magick_rust::magick_wand_genesis;
-use std::{env, sync::Once};
+use std::env;
 use tracing_subscriber::{filter, fmt, prelude::*, Registry};
-
-static START_MAGICK: Once = Once::new();
 
 // ridiculously good and simple example of how to setup tracing_subscriber
 // https://stackoverflow.com/a/70042590
@@ -22,10 +19,6 @@ async fn main() {
     Registry::default().with(stdout_log).init();
 
     tracing::info!("logger initalized!");
-
-    START_MAGICK.call_once(|| {
-        magick_wand_genesis();
-    });
 
     let discord_token = env::var("DISCORD_TOKEN").expect("DISCORD_TOKEN not found!");
     let genius_token = env::var("GENIUS_TOKEN").expect("GENIUS_TOKEN not found!");
