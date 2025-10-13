@@ -52,7 +52,9 @@ async fn lyrics(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
-    let song = ask_user_for_a_song(ctx, msg, &args).await.ok_or("")?;
+    let song = ask_user_for_a_song(ctx, msg, &args)
+        .await
+        .ok_or("Failed to get a song from the user")?;
 
     if let Ok(lyrics) = genius_api.lyrics(&song.url).await {
         msg.channel_id

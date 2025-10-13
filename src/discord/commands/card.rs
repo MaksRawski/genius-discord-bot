@@ -14,13 +14,13 @@ use std::time::Duration;
 pub struct Card;
 
 /// returns a path to a downloaded image or None if an error occured
-async fn search_img(ctx: &Context, q: &Song) -> Option<DynamicImage> {
+async fn search_img(ctx: &Context, q: &Song) -> Result<DynamicImage, anyhow::Error> {
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
-    let img = genius_api.get_cover(q.id).await.ok()?;
+    let img = genius_api.get_cover(q.id).await?;
 
-    Some(img)
+    Ok(img)
 }
 
 async fn get_quote_from_user(
@@ -28,23 +28,25 @@ async fn get_quote_from_user(
     msg: &Message,
     args: &Args,
     lyrics: &str,
-) -> Option<String> {
-    let q = ask_user_for_a_song(ctx, msg, args).await?;
+) -> Result<String, anyhow::Error> {
+    let q = ask_user_for_a_song(ctx, msg, args)
+        .await
+        .ok_or(anyhow::Error::msg("Failed to get a song from the user"))?;
     let img = search_img(ctx, &q).await?;
 
     let remove_keywords = Regex::new(r"\[.*\]").unwrap();
     let lyrics = remove_keywords.replace_all(lyrics, "");
     if textwrap::wrap(&lyrics, 46).len() > 8 {
         send_error!(ctx, msg, "This lyric is too long!");
-        return None;
+        return Err(anyhow::Error::msg("Too long lyric"));
     };
     match generate_card(img, &lyrics, &q.artist, &q.title) {
-        Ok(card) => {
-            return Some(card);
-        }
+        Ok(card) => Ok(card),
         Err(e) => {
             send_error!(ctx, msg, "Failed to generate the card! {}", e);
-            return None;
+            Err(anyhow::Error::msg(format!(
+                "Failed to generate the card! {e}"
+            )))
         }
     }
 }
@@ -65,9 +67,7 @@ async fn card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         msg.author.name,
         msg.author.id
     );
-    let card = get_quote_from_user(ctx, msg, &args, args.message())
-        .await
-        .ok_or("")?;
+    let card = get_quote_from_user(ctx, msg, &args, args.message()).await?;
     msg.channel_id
         .send_files(ctx, vec![&card[..]], |m| m.content(""))
         .await?;
@@ -92,7 +92,7 @@ async fn custom_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     );
     let q = ask_user_for_a_song(ctx, msg, &args).await.ok_or("")?;
 
-    if let Some(img) = search_img(ctx, &q).await {
+    if let Ok(img) = search_img(ctx, &q).await {
         send_message!(ctx, msg, "What should the caption be?");
         let caption = if let Some(answer) = &msg
             .author

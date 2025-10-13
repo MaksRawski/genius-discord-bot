@@ -8,6 +8,7 @@ use serenity::prelude::TypeMapKey;
 use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::trace;
 
 #[derive(Clone, Deserialize)]
 pub struct Song {
@@ -64,14 +65,16 @@ impl GeniusApi {
 
     /// returns a vector of upto 10 matching songs or None if an anyhow::error occured
     pub async fn search_for_song(&self, query: &str) -> Result<Vec<Song>, anyhow::Error> {
+        trace!("Searching for a song with query: {}", query);
         let raw_data = self.query_api("search", query).await?;
-
-        Ok(serde_json::from_str::<SearchResponseTop>(&raw_data)?
+        let results: Vec<Song> = serde_json::from_str::<SearchResponseTop>(&raw_data)?
             .response
             .hits
             .iter()
             .map(|hit| hit.result.clone())
-            .collect())
+            .collect();
+        trace!("Found {} results", results.len());
+        Ok(results)
     }
 
     pub async fn get_song_by_id(&self, song_id: u32) -> Result<Song, anyhow::Error> {
