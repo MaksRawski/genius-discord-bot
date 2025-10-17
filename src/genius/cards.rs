@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ab_glyph::{Font, FontArc, ScaleFont};
 use image::{imageops, DynamicImage};
 use imageproc::{
@@ -11,12 +13,15 @@ const LATO_SEMIBOLD: &[u8] = include_bytes!("../../resources/Lato/Lato-Semibold.
 const LATO_BOLD: &[u8] = include_bytes!("../../resources/Lato/Lato-Bold.ttf");
 const QUOTE_SYMBOL: &[u8] = include_bytes!("../../resources/quote.png");
 
+// NOTE: the generated image is saved and the path to it is returned
+// even though returning just the image data would be semantically better
+// but this way turns out to just be much more convenient
 pub fn generate_card(
     img_data: DynamicImage,
     caption: &str,
     artist: &str,
     title: &str,
-) -> Result<String, anyhow::Error> {
+) -> Result<PathBuf, anyhow::Error> {
     // 0. Load resources
     let lato_semibold = FontArc::try_from_slice(LATO_SEMIBOLD)?;
     let lato_bold = FontArc::try_from_slice(LATO_BOLD)?;
@@ -139,8 +144,10 @@ pub fn generate_card(
     imageops::overlay(&mut canvas, &quote_img, 25, quote_y as i64);
 
     let filename: String = Alphanumeric.sample_string(&mut rand::thread_rng(), 30);
-    let filename = format!("{filename}.jpg");
-    canvas.save(&filename)?;
+    let path = std::env::current_dir()?
+        .with_file_name(filename)
+        .with_extension("jpg");
+    canvas.save(&path)?;
 
-    Ok(filename)
+    Ok(path)
 }
