@@ -24,11 +24,7 @@ pub fn generate_card(
 
     // 1. resize
     let (w, h) = img.dimensions();
-    img = if w > h {
-        imageops::resize(&img, w * 600 / h, 600, imageops::Lanczos3)
-    } else {
-        imageops::resize(&img, 900, h * 900 / w, imageops::Lanczos3)
-    };
+    img = imageops::resize(&img, 900, h * 900 / w, imageops::Lanczos3);
 
     let cropped = DynamicImage::ImageRgb8(
         imageops::crop_imm(
