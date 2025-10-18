@@ -29,7 +29,7 @@ impl Handler {}
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         tracing::info!("Connected as {}", ready.user.name);
-        let _ = Command::create_global_application_command(ctx, |cmd| {
+        let commands = Command::create_global_application_command(ctx, |cmd| {
             cmd.name("card")
                 .create_option(|op| {
                     op.name("quote")
@@ -37,9 +37,10 @@ impl EventHandler for Handler {
                         .description("Quote you want on the card")
                         .required(true)
                 })
-                .description("Create a card")
+                .description("Create a genius-like lyric card")
         })
         .await;
+        tracing::info!("{:?}", commands);
     }
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {

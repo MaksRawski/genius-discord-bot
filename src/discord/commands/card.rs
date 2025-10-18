@@ -64,11 +64,6 @@ a card with a common quote but from a specific artist.
 "
 )]
 async fn card(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    // tracing::info!(
-    //     "User \"{}#{}\" is creating a card.",
-    //     msg.author.name,
-    //     msg.author.id
-    // );
     let card = create_card_interaction(ctx, msg, &args, args.message()).await?;
 
     msg.channel_id
@@ -92,15 +87,20 @@ pub async fn card_slash(
         .clone()
         .ok_or(anyhow!("No value in command data options"))?;
 
-    let quote = arg0
+    let query = arg0
         .as_str()
         .ok_or(anyhow!("Command data option is not a string!"))?;
+
+    let remove_keywords = Regex::new(r"\[.*\]").unwrap();
+    let quote = remove_keywords.replace_all(query, "");
+
+    tracing::info!("A card is created with quote: {}", quote);
 
     let data = ctx.data.read().await;
     let genius_api = data.get::<GeniusApiWrapper>().unwrap();
 
     let results: Vec<Song> = genius_api
-        .search_for_song(quote)
+        .search_for_song(&quote)
         .await
         .with_context(|| "Failed to find a song")?;
 
@@ -159,7 +159,7 @@ pub async fn card_slash(
         .await
         .with_context(|| format!("Failed to get cover for a song_id: {song_id}"))?;
 
-    let card_path = generate_card(img_data, quote, &song.artist, &song.title)
+    let card_path = generate_card(img_data, &quote, &song.artist, &song.title)
         .with_context(|| "Failed to generate the card!")?;
 
     interaction
