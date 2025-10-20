@@ -236,7 +236,7 @@ pub async fn card_slash(
 }
 
 pub fn register_card_slash(cmd: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    cmd.name("custom_card")
+    cmd.name("card")
         .create_option(|op| {
             op.name("quote")
                 .kind(command::CommandOptionType::String)

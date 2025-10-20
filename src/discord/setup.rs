@@ -30,15 +30,24 @@ impl Handler {}
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         tracing::info!("Connected as {}", ready.user.name);
+
         let register_fns = [register_card_slash];
-        for f in register_fns {
-            if let Err(e) = Command::create_global_application_command(&ctx, f)
-                .await
-                .context("Failed to register a global application command")
-            {
-                tracing::error!("{:?}", e);
+        Command::set_global_application_commands(&ctx, |mut cmds| {
+            for f in register_fns {
+                cmds = cmds.create_application_command(f);
             }
-        }
+            cmds
+        })
+        .await
+        .inspect(|cmds| {
+            tracing::info!(
+                count = cmds.len(),
+                names = ?cmds.iter().map(|c| &c.name).collect::<Vec<_>>(),
+                "registered global commands"
+            );
+        })
+        .inspect_err(|e| tracing::error!("failed to set global application commands: {}", e))
+        .ok();
     }
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
