@@ -3,6 +3,7 @@ use serenity::model::prelude::command::Command;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use crate::discord::commands::card::register_card_slash;
 use crate::discord::commands::{CARD_GROUP, QUERY_GROUP};
 use crate::genius::{GeniusApi, GeniusApiWrapper};
 
@@ -29,35 +30,30 @@ impl Handler {}
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         tracing::info!("Connected as {}", ready.user.name);
-        let commands = Command::create_global_application_command(ctx, |cmd| {
-            cmd.name("card")
-                .create_option(|op| {
-                    op.name("quote")
-                        .kind(command::CommandOptionType::String)
-                        .description("Quote you want on the card")
-                        .required(true)
-                })
-                .description("Create a genius-like lyric card")
-        })
-        .await;
-        tracing::info!("{:?}", commands);
+        let register_fns = [register_card_slash];
+        for f in register_fns {
+            if let Err(e) = Command::create_global_application_command(&ctx, f)
+                .await
+                .context("Failed to register a global application command")
+            {
+                tracing::error!("{:?}", e);
+            }
+        }
     }
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
-            match cmd.data.name.as_str() {
-                "card" => {
-                    if let Err(err) = card_slash(&ctx, &cmd).await {
-                        tracing::error!("{:?}", err); // card_slash error
-                        if let Err(create_err_msg_err) = cmd
-                            .create_followup_message(ctx, |msg| msg.content(err).ephemeral(true))
-                            .await
-                            .with_context(|| "Failed to send an error message to the user")
-                        {
-                            tracing::error!("{:?}", create_err_msg_err); // error when sending the error message
-                        }
-                    }
-                }
+            if let Err(err) = match cmd.data.name.as_str() {
+                "card" => card_slash(&ctx, &cmd).await,
                 cmd_name => todo!("{}", cmd_name),
+            } {
+                tracing::error!("{:?}", err); // card_slash error
+                if let Err(create_err_msg_err) = cmd
+                    .create_followup_message(ctx, |msg| msg.content(err).ephemeral(true))
+                    .await
+                    .context("Failed to send an error message to the user")
+                {
+                    tracing::error!("{:?}", create_err_msg_err); // error when sending the error message
+                }
             }
         }
     }

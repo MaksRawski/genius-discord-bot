@@ -5,11 +5,11 @@ use crate::{send_error, send_message};
 use anyhow::{anyhow, Context};
 use image::DynamicImage;
 use regex::Regex;
-use serenity::builder::{CreateComponents, CreateSelectMenuOption};
+use serenity::builder::{CreateApplicationCommand, CreateComponents, CreateSelectMenuOption};
 use serenity::client;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::{AttachmentType, InteractionResponseType, Message};
+use serenity::model::prelude::{command, AttachmentType, InteractionResponseType, Message};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -74,110 +74,6 @@ async fn card(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult
     Ok(())
 }
 
-pub async fn card_slash(
-    ctx: &client::Context,
-    cmd: &ApplicationCommandInteraction,
-) -> Result<(), anyhow::Error> {
-    let arg0 = cmd
-        .data
-        .options
-        .get(0)
-        .ok_or(anyhow!("No option provided as an argument"))?
-        .value
-        .clone()
-        .ok_or(anyhow!("No value in command data options"))?;
-
-    let query = arg0
-        .as_str()
-        .ok_or(anyhow!("Command data option is not a string!"))?;
-
-    let remove_keywords = Regex::new(r"\[.*\]").unwrap();
-    let quote = remove_keywords.replace_all(query, "");
-
-    tracing::info!("A card is created with quote: {}", quote);
-
-    let data = ctx.data.read().await;
-    let genius_api = data.get::<GeniusApiWrapper>().unwrap();
-
-    let results: Vec<Song> = genius_api
-        .search_for_song(&quote)
-        .await
-        .with_context(|| "Failed to find a song")?;
-
-    // ACK an interaction
-    cmd.create_interaction_response(ctx, |r| {
-        r.kind(serenity::model::prelude::InteractionResponseType::DeferredChannelMessageWithSource)
-    })
-    .await
-    .with_context(|| "Failed to ACK an interaction")?;
-
-    // let the user choose the result
-    let msg = cmd
-        .create_followup_message(ctx, |msg| {
-            if results.len() == 0 {
-                msg.content("No results were found!")
-            } else {
-                msg.content("Choose a song").components(|c| {
-                    c.create_action_row(|r| {
-                        r.create_select_menu(|menu| {
-                            menu.custom_id("results_menu");
-                            menu.options(|mut ops| {
-                                for res in results {
-                                    ops = ops.add_option(CreateSelectMenuOption::new(
-                                        format!("{} - {}", res.artist, res.title),
-                                        res.id,
-                                    ));
-                                }
-                                ops
-                            })
-                        })
-                    })
-                })
-            }
-        })
-        .await
-        .with_context(|| "Failed to ask the user to pick the song")?;
-
-    let interaction = match msg
-        .await_component_interaction(&ctx)
-        .timeout(Duration::from_secs(30))
-        .await
-    {
-        Some(interaction) => interaction,
-        None => {
-            msg.reply(&ctx, "Timed out!").await.unwrap();
-            return Ok(());
-        }
-    };
-    let song_id: u32 = interaction.data.values[0].parse()?;
-    let song = genius_api
-        .get_song_by_id(song_id)
-        .await
-        .with_context(|| format!("Failed to find a song with song_id: {song_id}"))?;
-    let img_data = genius_api
-        .get_cover(song_id)
-        .await
-        .with_context(|| format!("Failed to get cover for a song_id: {song_id}"))?;
-
-    let card_path = generate_card(img_data, &quote, &song.artist, &song.title)
-        .with_context(|| "Failed to generate the card!")?;
-
-    interaction
-        .create_interaction_response(ctx, |r| {
-            r.kind(InteractionResponseType::UpdateMessage)
-                .interaction_response_data(|d| {
-                    // clear the original response - message with the song choice
-                    d.content("")
-                        .set_components(CreateComponents::default())
-                        .add_file(AttachmentType::Path(&card_path))
-                })
-        })
-        .await
-        .with_context(|| "Failed to send the image!")?;
-
-    Ok(())
-}
-
 #[command]
 #[aliases(cc)]
 #[description(
@@ -202,7 +98,7 @@ async fn custom_card(ctx: &client::Context, msg: &Message, args: Args) -> Comman
             .timeout(Duration::from_secs(60))
             .await
         {
-            answer.content.clone()
+            &answer.clone().content
         } else {
             send_message!(ctx, msg, "Time's up!");
             return Ok(());
@@ -218,4 +114,140 @@ async fn custom_card(ctx: &client::Context, msg: &Message, args: Args) -> Comman
         send_error!(ctx, msg, "Failed to find an image for this song!");
     }
     Ok(())
+}
+
+pub async fn card_slash(
+    ctx: &client::Context,
+    cmd: &ApplicationCommandInteraction,
+) -> Result<(), anyhow::Error> {
+    let quote = cmd
+        .data
+        .options
+        .iter()
+        .find(|op| op.name == "quote")
+        .ok_or(anyhow!("Required option 'quote' not specified"))?
+        .value
+        .as_ref()
+        .ok_or(anyhow!("Invalid value for 'quote' option"))?
+        .as_str()
+        .ok_or(anyhow!("Option 'quote' must be a string"))?;
+
+    let query = cmd
+        .data
+        .options
+        .iter()
+        .find(|op| op.name == "song")
+        .map_or(Ok(quote), |op| {
+            op.value
+                .as_ref()
+                .and_then(|v| v.as_str())
+                .ok_or(anyhow!("Invalid value for 'song' option"))
+        })?;
+
+    tracing::trace!("A card is being created with quote: {}", quote);
+    // ACK an interaction
+    cmd.create_interaction_response(ctx, |r| {
+        r.kind(serenity::model::prelude::InteractionResponseType::DeferredChannelMessageWithSource)
+    })
+    .await
+    .context("Failed to ACK an interaction")?;
+
+    let data = ctx.data.read().await;
+    let genius_api = data.get::<GeniusApiWrapper>().unwrap();
+
+    let results: Vec<Song> = genius_api
+        .search_for_song(&query)
+        .await
+        .context("Failed to find a song")?;
+
+    // let the user choose the result
+    let results_num = results.len();
+    let msg = cmd
+        .create_followup_message(ctx, |msg| {
+            if results_num == 0 {
+                msg.content("No results were found!")
+            } else {
+                msg.content("Choose a song").components(|c| {
+                    c.create_action_row(|r| {
+                        r.create_select_menu(|menu| {
+                            menu.custom_id("results_menu");
+                            menu.options(|mut ops| {
+                                for res in results {
+                                    ops = ops.add_option(CreateSelectMenuOption::new(
+                                        format!("{} - {}", res.artist, res.title),
+                                        res.id,
+                                    ));
+                                }
+                                ops
+                            })
+                        })
+                    })
+                })
+            }
+        })
+        .await
+        .context("Failed to ask the user to pick the song")?;
+
+    if results_num == 0 {
+        return Ok(());
+    }
+    let interaction = match msg
+        .await_component_interaction(&ctx)
+        .timeout(Duration::from_secs(60))
+        .await
+    {
+        Some(interaction) => interaction,
+        None => {
+            msg.reply(&ctx, "Timed out!").await.unwrap();
+            // TODO: edit the original message instead or send it as an ephemeral
+            return Ok(());
+        }
+    };
+    let song_id: u32 = interaction.data.values[0].parse()?;
+    let song = genius_api
+        .get_song_by_id(song_id)
+        .await
+        .with_context(|| format!("Failed to find a song with song_id: {song_id}"))?;
+    let img_data = genius_api
+        .get_cover(song_id)
+        .await
+        .with_context(|| format!("Failed to get cover for a song_id: {song_id}"))?;
+    tracing::trace!(song_id);
+    let card_path = generate_card(img_data, &quote, &song.artist, &song.title)
+        .context("Failed to generate the card!")?;
+    tracing::trace!("{:?}", &card_path);
+
+    interaction
+        .create_interaction_response(ctx, |r| {
+            r.kind(InteractionResponseType::UpdateMessage)
+                .interaction_response_data(|d| {
+                    // clear the original response - message with the song choice
+                    d.content("")
+                        .set_components(CreateComponents::default())
+                        .add_file(AttachmentType::Path(&card_path))
+                })
+        })
+        .await
+        .context("Failed to send the image!")?;
+    if let Err(e) = std::fs::remove_file(card_path) {
+        tracing::error!("Failed to remove the card image file: {e}");
+    }
+    Ok(())
+}
+
+pub fn register_card_slash(cmd: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    cmd.name("custom_card")
+        .create_option(|op| {
+            op.name("quote")
+                .kind(command::CommandOptionType::String)
+                .description("Quote you want on the card")
+                .required(true)
+        })
+        .create_option(|op| {
+            op.name("song")
+                .kind(command::CommandOptionType::String)
+                .description("Keywords to find the song you want the quote on")
+                .required(false)
+        })
+        .description("Create a genius-like lyric card with whatever quote you want")
 }
