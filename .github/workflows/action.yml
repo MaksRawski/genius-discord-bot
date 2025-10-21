@@ -6,7 +6,7 @@ on:
       aws_region:
         description: Target AWS Region
         type: string
-      aws_account_id:
+      aws_role:
         description: AWS Account ID
         type: string
       aws_ecr_repo_url:
@@ -33,7 +33,7 @@ jobs:
         with:
           aws-region: ${{ inputs.aws_region }}
           role-to-assume: ${{ inputs.aws_role }}
-          role-session-name: ${{ github.run_id }}
+          role-session-name: ${{ github.sha }}-${{ github.run_id }}
 
       - name: Login to Amazon ECR
         id: login-ecr
