@@ -7,7 +7,7 @@ on:
         description: Target AWS Region
         type: string
       aws_role:
-        description: AWS Account ID
+        description: AWS IAM Role to assume
         type: string
       aws_ecr_repo_url:
         description: AWS ECR Repository URL
