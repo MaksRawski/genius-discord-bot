@@ -145,7 +145,7 @@ pub fn generate_card(
     }
 
     // 5. Overlay quote image
-    let quote_img = image::load_from_memory(QUOTE_SYMBOL)?.resize(38, 38, imageops::Lanczos3);
+    let quote_img = image::load_from_memory(QUOTE_SYMBOL)?;
 
     let quote_y = last_bar_y - ((num_of_bars - 1) as i32 * (bar_height + bar_gap) as i32);
     imageops::overlay(&mut canvas, &quote_img, 25, quote_y as i64);
