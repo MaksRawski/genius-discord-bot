@@ -151,9 +151,8 @@ pub fn generate_card(
     imageops::overlay(&mut canvas, &quote_img, 25, quote_y as i64);
 
     let filename: String = Alphanumeric.sample_string(&mut rand::thread_rng(), 30);
-    let path = std::env::current_dir()?
-        .with_file_name(filename)
-        .with_extension("jpg");
+    let mut path = std::env::current_dir()?;
+    path.push(format!("{}.jpg", filename));
     canvas.save(&path)?;
 
     Ok(path)
