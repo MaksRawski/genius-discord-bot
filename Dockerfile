@@ -1,13 +1,13 @@
-FROM rust:1.90
+FROM rust:1.90 AS builder
 
-RUN apt-get update && apt-get install -y -f openssl ca-certificates clang fonts-lato
-WORKDIR /genius-build
+WORKDIR /build
 COPY . .
 
 RUN cargo build --release
 
-WORKDIR /genius
-RUN mv /genius-build/target/release/genius /genius/
-RUN rm -r /genius-build
+FROM debian:bookworm-slim AS runner
+WORKDIR /app
+RUN apt-get update && apt-get install -y ca-certificates
+COPY --from=builder /build/target/release/genius genius
 
-CMD /genius/genius
+ENTRYPOINT ["/app/genius"]

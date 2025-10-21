@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ab_glyph::{Font, FontArc, ScaleFont};
 use image::{imageops, DynamicImage};
 use imageproc::{
@@ -11,12 +13,15 @@ const LATO_SEMIBOLD: &[u8] = include_bytes!("../../resources/Lato/Lato-Semibold.
 const LATO_BOLD: &[u8] = include_bytes!("../../resources/Lato/Lato-Bold.ttf");
 const QUOTE_SYMBOL: &[u8] = include_bytes!("../../resources/quote.png");
 
+// NOTE: the generated image is saved and the path to it is returned
+// even though returning just the image data would be semantically better
+// but this way turns out to just be much more convenient
 pub fn generate_card(
     img_data: DynamicImage,
     caption: &str,
     artist: &str,
     title: &str,
-) -> Result<String, anyhow::Error> {
+) -> Result<PathBuf, anyhow::Error> {
     // 0. Load resources
     let lato_semibold = FontArc::try_from_slice(LATO_SEMIBOLD)?;
     let lato_bold = FontArc::try_from_slice(LATO_BOLD)?;
@@ -24,7 +29,14 @@ pub fn generate_card(
 
     // 1. resize
     let (w, h) = img.dimensions();
-    img = imageops::resize(&img, 900, h * 900 / w, imageops::Lanczos3);
+    // ensuring the image is at least 900x600
+    let mut new_w = u32::max(w, 900);
+    let mut new_h = h * new_w / w;
+    if new_h < 600 {
+        new_h = 600;
+        new_w = w * new_h / h;
+    }
+    img = imageops::resize(&img, new_w, new_h, imageops::Lanczos3);
 
     let cropped = DynamicImage::ImageRgb8(
         imageops::crop_imm(
@@ -133,14 +145,15 @@ pub fn generate_card(
     }
 
     // 5. Overlay quote image
-    let quote_img = image::load_from_memory(QUOTE_SYMBOL)?.resize(38, 38, imageops::Lanczos3);
+    let quote_img = image::load_from_memory(QUOTE_SYMBOL)?;
 
     let quote_y = last_bar_y - ((num_of_bars - 1) as i32 * (bar_height + bar_gap) as i32);
     imageops::overlay(&mut canvas, &quote_img, 25, quote_y as i64);
 
     let filename: String = Alphanumeric.sample_string(&mut rand::thread_rng(), 30);
-    let filename = format!("{filename}.jpg");
-    canvas.save(&filename)?;
+    let mut path = std::env::current_dir()?;
+    path.push(format!("{}.jpg", filename));
+    canvas.save(&path)?;
 
-    Ok(filename)
+    Ok(path)
 }

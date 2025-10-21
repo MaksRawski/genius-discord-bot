@@ -10,10 +10,9 @@ async fn main() {
     dotenv().ok();
     let stdout_log = fmt::layer()
         .pretty()
-        // filter everything but the logs with genius target
-        // AKA only the stuff we are logging in here, no internals
+        // we log everything from this crate and all errors including those from different crates
         .with_filter(filter::filter_fn(|metadata| {
-            metadata.target().starts_with("genius")
+            metadata.target().starts_with("genius") || metadata.level() == &tracing::Level::ERROR
         }));
 
     Registry::default().with(stdout_log).init();
