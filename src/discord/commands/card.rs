@@ -8,6 +8,7 @@ use regex::Regex;
 use serenity::builder::{CreateApplicationCommand, CreateComponents, CreateSelectMenuOption};
 use serenity::client;
 use serenity::framework::standard::{macros::*, Args, CommandResult};
+use serenity::futures::StreamExt;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::{command, AttachmentType, InteractionResponseType, Message};
 use std::path::PathBuf;
@@ -191,27 +192,40 @@ pub async fn card_slash(
     if results_num == 0 {
         return Ok(());
     }
+
     let interaction = match msg
-        .await_component_interaction(&ctx)
+        .await_component_interactions(&ctx)
         .timeout(Duration::from_secs(60))
+        .author_id(cmd.user.id)
+        .collect_limit(1)
+        .build()
+        .next()
         .await
     {
         Some(interaction) => interaction,
         None => {
-            msg.reply(&ctx, "Timed out!").await.unwrap();
-            // TODO: edit the original message instead or send it as an ephemeral
+            cmd.create_followup_message(&ctx, |msg| msg.content("Timed out!").ephemeral(true))
+                .await
+                .context("Failed to send a timed out message")?;
+
+            cmd.delete_original_interaction_response(&ctx)
+                .await
+                .context("Failed to delete original interaction response")?;
+
             return Ok(());
         }
     };
+    // TODO: ACK that interaction ASAP with DefferedUpdateMessage and then proceed
+
     let song_id: u32 = interaction.data.values[0].parse()?;
-    let song = genius_api
-        .get_song_by_id(song_id)
-        .await
-        .with_context(|| format!("Failed to find a song with song_id: {song_id}"))?;
-    let img_data = genius_api
-        .get_cover(song_id)
-        .await
-        .with_context(|| format!("Failed to get cover for a song_id: {song_id}"))?;
+    let (song, img_data) = tokio::join!(
+        genius_api.get_song_by_id(song_id),
+        genius_api.get_cover(song_id)
+    );
+    let song = song.with_context(|| format!("Failed to find a song with song_id: {song_id}"))?;
+    let img_data =
+        img_data.with_context(|| format!("Failed to get cover for a song_id: {song_id}"))?;
+
     tracing::trace!(song_id);
     let card_path = generate_card(img_data, &quote, &song.artist, &song.title)
         .context("Failed to generate the card!")?;
@@ -221,7 +235,7 @@ pub async fn card_slash(
         .create_interaction_response(ctx, |r| {
             r.kind(InteractionResponseType::UpdateMessage)
                 .interaction_response_data(|d| {
-                    // clear the original response - message with the song choice
+                    // clear the original response (message with the song choice) and attach a card
                     d.content("")
                         .set_components(CreateComponents::default())
                         .add_file(AttachmentType::Path(&card_path))
@@ -229,6 +243,7 @@ pub async fn card_slash(
         })
         .await
         .context("Failed to send the image!")?;
+
     if let Err(e) = std::fs::remove_file(card_path) {
         tracing::error!("Failed to remove the card image file: {e}");
     }
