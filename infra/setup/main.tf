@@ -117,6 +117,13 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 # 5. create service
+# TODO: creating a VPC endpoint to avoid assiging public IP
+# https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html
+# Use a VPC endpoint for Amazon ECR. VPC endpoints are powered by AWS PrivateLink,
+# a technology that enables you to privately access Amazon ECR APIs through private IP addresses.
+# For Amazon ECS tasks that use the Fargate launch type, the VPC endpoint enables the task to pull private images
+# from Amazon ECR without assigning a public IP address to the task.
+
 resource "aws_ecs_service" "service" {
   name                   = "${local.application_name}_service"
   cluster                = aws_ecs_cluster.main.id
@@ -128,8 +135,6 @@ resource "aws_ecs_service" "service" {
   network_configuration {
     subnets          = [data.aws_subnet.subnet.id]
     security_groups  = [data.aws_security_group.security_group.id]
-    # HACK: for some reason without public ip the task is unable to pull from ECR
-    # TODO: https://tinfoilcipher.co.uk/2025/01/29/configuring-ecs-fargate-and-ecr-with-private-subnets/
     assign_public_ip = true
   }
 }

@@ -6,6 +6,12 @@ variable "region" {
   type        = string
 }
 
+variable "github_path" {
+  description = "Github repo that should be allowed to access AWS"
+  type        = string
+  default     = "MaksRawski/genius-discord-bot"
+}
+
 variable "availability_zone_id" {
   description = "Availability zone id in region to use"
   type        = string
@@ -14,6 +20,7 @@ variable "availability_zone_id" {
 variable "security_group_name" {
   description = "Security group's name to use"
   type        = string
+  default     = "default"
 }
 
 variable "discord_token" {
